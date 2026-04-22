@@ -89,10 +89,10 @@ class DebouncerMidiCCAnalog : public DebouncerBase {
 
 // Debouncer for bo†h matrix and parallel scanners that generate note-on and note-off messages
 
-// *** Need to determine RAM consumption of these, want to support up to 256 notes (4 8x8 matrices)
-// As they currently exist these debouncers take 20 bytes each (an 8x8 matrix takes up 1280 bytes of RAM)
-// It looks like we can recover 7 bytes though by eliminating the top 4 items in favor of computing them
-// at runtime or storing them dynamically in structs with much smaller cardinality.
+// As they currently exist after eliminating the MIDI interface pointer, these debouncers take 14 bytes
+// each so an 8x8 matrix takes up 896 bytes of RAM.
+// It looks like we could recover 2 more bytes though by eliminating the note number and using the global
+// MIDI output channel.
 class DebouncerMidiNoteSingleContact : public DebouncerBase {
     protected:
         uint8_t midiNoteNum = 0;                // *** recover noteNum from pinBlock
@@ -111,7 +111,6 @@ class DebouncerMidiNoteSingleContact : public DebouncerBase {
         }
 
         DebouncerMidiNoteSingleContact() {
-
         }
 
         void activateControl();

@@ -144,6 +144,8 @@ HardwareSerial *Console = &Serial;
 #define MIDI_CHANNEL_PRESSURE 0xD0      // 1 data byte
 #define MIDI_PITCH_BEND 0xE0
 
+// *** TODO update this now that we have the diode matrix definitions in const flash
+
 class DiodeMatrixBase {
     protected:
         int colBasePin;
@@ -193,6 +195,11 @@ class DiodeMatrixBase {
 
 };
 
+
+// *** TODO make new scanner method using flash pinBlock definitions
+// The code below basically works but it stores an extra pointer per debouncer that uses a lot of memory.
+// The newer debouncer class and utilities to recover the debouncer index from (pinBlockNum, scanPin, readPin)
+// save all of that memory with a fairly modest reduction in performance.
 
 // Diode matrix scanning for a 4 cols x 8 rows matrix (usually for a pedalboard) where:
 //   column pins on the Arduino are contiguous
@@ -262,7 +269,7 @@ class DiodeMatrixPedalboard_4x8 : public DiodeMatrixBase {
 // the way to do it is by implementing a message handling callback that will do the remapping of
 // channelized messages.
 //
-// WARNING - the basic merge/thru functions below only support 3-byte MIDI messages.
+// WARNING - the basic merge/thru functions below only support 3-byte MIDI channel messages.
 void startMidi()
 {
     midi0.turnThruOff();
