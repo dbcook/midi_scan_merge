@@ -24,6 +24,24 @@ their capacity is hepful.
 * Built with PlatformIO plugin for vscode
 
 
+## Prerequisites and Building
+
+To configure, build and load this software into an Arduino, you need vscode with the PlatformIO plugin.
+
+Due to the need to save RAM and keep as much data in flash as possible, you will need to do some
+configuration in the code to specify your diode matrix and parallel input configuration. Support
+is provided to specify a separate MIDI output channel and MIDI note base for each diode matrix group.
+
+There is enough
+memory and CPU to scan and debounce 256 inputs (four 8x8 diode matrix groups).  Nearly all the RAM is
+statically allocated to avoid problems with unpredictable heap usage.  The Platform IO build output
+in the terminal will tell you how much of the RAM and flash are used.
+
+The firmware will spit out useful periodic messages on the primary serial port.  This port is shared
+with the bootloader, so if you add a MIDI serial shield you should modify it to use a different hardware
+serial port in order to allow these messages to be seen and avoid having to flip the prog/run switch
+every time you load code.
+
 ## MIDI Transport
 
 This package supports multiple transport methods - serial, USB and Ethernet - built around the family of MIDI libraries
@@ -71,7 +89,8 @@ The last note in a big chord from the end of the chain could see 20-25 msec of l
 ### Memory
 
 The Arduino Mega 256 has only 8KB of RAM, representing a serious memory challenge.  The debouncers as
-currently implemented use 20 bytes of memory each, so 256 of them use 5K of RAM.  This leaves next to nothing
+currently implemented use 14 bytes of memory each, so 256 of them use 3.6K of RAM.  With the Ethernet
+and MIDI libraries there is very little
 left over - even keeping a list of pointers to the debouncers costs 1KB, so the configuration code where
 you define the diode matrix and parallel inputs has to be entirely flash-based and use computed indexes to
 the debouncer objects.
@@ -88,6 +107,13 @@ or 3 8x8 matrices plus 16 analog inputs (expression pedals, rotary encoders, sli
 
 If a MIDI serial shield is used and you do not want to have to flip PROG/RUN switches everytime you load code,
 you have to give up two IO pins and you cannot support four 8x8's.
+
+### Velocity Sensing
+
+Velocity sensing for keyboards (not yet implemented) will double the number of contacts and is expected to
+double or nearly double the memory consumption of each debouncer.  It will also slow down the scanning somewhat
+due to increased complexity of the algorithm.  However I think it should be possible to do velocity sensing
+on two 61-note keyboards with a single Mega 2560 at better than 1 KHz.
 
 ## MIDI DIN-5 Serial Cables
 
