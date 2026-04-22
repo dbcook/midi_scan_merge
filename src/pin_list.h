@@ -1,68 +1,62 @@
 #pragma once
 #include <Arduino.h>
 #include <MIDI.h>
-#include <ListLib.h>
+//#include <ListLib.h>
 //#include "ArrayList.h"
+#include "data.h"
 #include "debouncer.h"
-
-
-// A list of these will map each matrix single-contact input [select, read] with its midi note and output channel
-// The static version of this is designed to be instantiable as a const struct array in flash.
-
-// The dynamic version is built in RAM and can be populated in various ways:
-//    Reading one or more instances of the static list
-//    Loading from a pin block spec where the pin segments are contiguous and notes follow [select][read] order
-//    Loading from a parallel block spec where there are no select pins specified (useSelect false everywhere)
-//
-// When defining a static array manually (e.g. if pins or notes jump around), BE SURE TO GROUP ON SELECT PIN NUMBER.
-// This will allow scanner to work more efficiently without writing a different select pin for every read pin scanned.
-//
-// Defining an arbitrary scan list in flash:
-// Note that when useSelect is false, you should set the select pin to 13 (the LED) so that even if some bug
-// causes the select to be written, it will just blink the LED :)
-//   const MatrixEnt_Single_Static_t myscan[] = {
-//      { true, 10, 20, 32, 4 }
-//     ,{ true, 10, 21, 33, 4 }
-//     ,{ false,13, 22, 34, 4 }
-//   }
-
-typedef struct MatrixEnt_Single_Static {
-    bool useSelect;
-    int selectPin;
-    int readPin;
-    midi::DataByte midiNoteNum;
-    midi::Channel midiOutChan;
-} MatrixEnt_Single_Static_t;
-
-typedef List<MatrixEnt_Single_Static> scanlist_static_t;
-
 
 // Pin block definition for both matrix and parallel scan organization
 // All instances of this should be static
-// convention: note numbers auto-generated for [selectPin, readPin] tuples where readPin varies fastest
+// Note numbers are consecutive for [selectPin, readPin] tuples where readPin varies fastest, offset from baseMidiNoteNum
+// Debouncer index is also consecutive in the same order, offset from baseDebouncerIndex
 // if useSelect is false, selectBasePin and numSelectPins are ignored
+// Can't be a class since we have to define these in flash via
+// const PinBlock_t gPinBlocks[] = {
+//     {false, 0, 13, 0, 8, 0, 20, 4},
+//     {true, 28, 8, 36, 8, 0, 20, 5}
+// };
+// const int nPinBlocks = sizeof(gPinBlocks) / sizeof(PinBlock_t);
+//
 typedef struct PinBlock {
-    bool useSelect;             // applies to whole block
-    int selectBasePin;
-    int numSelectPins;
-    int readBasePin;
-    int numReadPins;
-    midi::DataByte baseMidiNoteNum;
-    midi::Channel midiOutChan;  // applies to whole block
-
+    bool useSelect;                 // true if block is for a diode matrix using select pins
+    int selectBasePin;              // start of select pin range, ignored if useSelect == false
+    int numSelectPins;              // num of select pins, ignored if useSelect == false
+    int readBasePin;                // start of read pin range
+    int numReadPins;                // num of read pins
+    midi::DataByte baseMidiNoteNum; // starting of contiguous MIDI note num range
+    midi::Channel midiOutChan;      // MIDI output channel for the block
 } PinBlock_t;
 
+// EXAMPLE PIN / NOTE CONFIG
+//  first block is 8 parallel pins starting at pin 20 and note num 32, output to MIDI chan 4
+//  second block is an 8x6 diode matrix with select pins starting at 28, read pins at 36, note nums starting at 20, sent to chan 5
+// Note that when useSelect is false, you should set the select pin to 13 (the LED) so that even if some bug
+// causes the select to be written, it will just blink the LED :
+const PinBlock_t gPinBlocks[] = {
+    {false, 13, 0, 20, 8, 32, 4},
+    {true, 28, 8, 36, 6, 20, 5}
+};
+const int nPinBlocks = sizeof(gPinBlocks) / sizeof(PinBlock_t);
 
-typedef struct {
-    midi::DataByte midiNoteNum;                        // needs to be dynamic param
-    DebouncerMidiNoteSingleContact *debouncer;         // ? less RAM to directly include 20-byte debouncer object?  need to get it constructed right
-} DebouncerNoteEnt_t;
+int calcPinBlockSize(int pbIndx);
+int calcDebouncerBase(int pbIndx);
+void initDebouncerBases();
+void initDebouncers();
+int calcDebouncerIndx(int pbIndx, int selectPin, int readPin);
+int getPinBlockIndxFromDebouncerIndx( int debIndx );
 
 
+
+
+
+
+// *** OBSOLETE BUT KEPT FOR REFERENCE TEMPORARILY ***
+#if 0
 typedef struct MatrixEnt_Single_Dynamic {
-    DebouncerMidiNoteSingleContact *debouncer;         // ? less RAM to directly include 20-byte debouncer object?  need to get it constructed right
+    DebouncerMidiNoteSingleContact debouncer;          // less RAM to directly include 20-byte debouncer object - need to get it constructed right
 //  midi::DataByte midiNoteNum;                        // needs to be dynamic param only if expanding a PinBlock spec
-    MatrixEnt_Single_Static_t * pMatrixEnt;            // pointer to matching static scanlist entry in flash
+//  MatrixEnt_Single_Static_t * pMatrixEnt;            // pointer to matching static scanlist entry in flash - do we need this back index?
     
     // *** don't duplicate static params in RAM, maintain parallel list of objects with notenum and single-contact debouncers
     // at 32 bytes each four 8x8's (256 entries) would be ~8K, so gotta be somewhat smaller
@@ -81,7 +75,7 @@ class ScanList_Single_Dyn {
         unsigned long debounceMsec = 20;                    // ?? do we do this on a per-output basis?
         t_midiInterfaceHWSerialPtr midiInterface;
         // The next list must be held in parallel with the static scanlist that is used to construct us
-        List<MatrixEnt_Single_Dynamic_t> scanList_dyn;
+        //List<MatrixEnt_Single_Dynamic_t> scanList_dyn;
 
     public:
         void addScanList(scanlist_static_t scanlist) {
@@ -120,3 +114,4 @@ class ScanList_Single_Dyn {
         }
 
 };
+#endif

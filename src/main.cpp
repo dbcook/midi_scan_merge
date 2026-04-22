@@ -2,22 +2,20 @@
 #include <MIDI.h>
 #include <ListLib.h>
 #include <MemoryFree.h>
+
+#define GEN_GLOBALS
+#include "glob_gen.h"
+#include "data.h"
 #include "midi_const.h"
 #include "debouncer.h"
 #include "pin_list.h"
+
 /*
 -------------------------------------------------------------------------------
 Pedalboard 32-note 8x4 matrix scanner and remapping MIDI merger for Arduino
 -------------------------------------------------------------------------------
 
  New implementation by dbcook using a well known Arduino MIDI library.
-   * Robust protocol handling all message types including SYSEX
-   * Configurable number of merge channels (up to 3, so this could run a 4-manual stack)
-   * Built with PlatformIO plugin for vscode
-   * Parameterized to accommodate various input hardware without extensive code changes
-   * Time-based debounce of both attack and release.  Runs on fast or slow CPU without changes.
-   * Midi merge with configurable MIDI channel remapping for messages from each incoming port
-   * Hardware wired MIDI thru is not supported
    
 In the default configuration, scanned hardware notes are output to the first serial port (Serial) on MIDI channel 1.
 
@@ -30,48 +28,8 @@ Boards:
     Leonardo: 32KB flash, 2.5KB RAM, 20 digital pins of which 12 can be analog, 16MHz, built-in USB
     ATMega: 69 digital pins (xx mappable as analog, yy as PWM, zz as serial)
 
-MIDI merge considerations:
-    This code supports MIDI merge with channel-remapping, enabling a few of these Arduino scanners
-    to be daisy-chained.  But this is not really a good idea from a latency perspective;
-    daisy chaining of serial MIDI ports introduces 2-3 msec of delay per hop, so single notes
-    from the most distant manual in a 4-manual chain could be delayed by as much as 10-12 msec.
-    The last note in a big chord from the end of the chain could see 20-25 msec of latency.
 */
 
-// MIDI DIN-5 connector pinout
-//
-//  PIN      MIDI IN           MIDI OUT          MIDI THRU
-// ----    |-----            |------            |-----
-// 1       | NC or GND       | NC or GND        | NC or GND
-// 2       | SHIELD          | SHIELD           | SHIELD
-// 3       | NC or +V        | NC or +V         | NC or +V
-// 4       | MIDI source IN  | MIDI source OUT  | MIDI source OUT    (+5V)
-// 5       | MIDI sink OUT   | MIDI sink IN     | MIDI sink IN
-
-// The actively driven line is always the MIDI current sink (Pin 5).
-// The MIDI current source is just a +5V supply through a 220 Ohm pullup resistor.
-// On the MIDI IN connector, the data signal on pins 4/5 is usually hooked to an optoisolator.
-
-// The MIDI recommended circuit connections are shown here:
-// https://learn.sparkfun.com/tutorials/midi-tutorial/hardware--electronic-implementation
-
-// Pin 2 is always the shield of a shielded 2-conductor cable.
-
-// The DIN5 cable should be wired straight thru.  Standard cables only have 2 conductors + shield (pins 2, 4, and 5).
-// A Crumar Mojo 61B lower manual needs a 4-conductor plus shield cable to support its power feed (all 5 pins wired).
-// If you want to use multiple Mojo lowers, a channel-remapping MIDI merge function is required.
-
-// CRUMAR MOJO 61B LOWER MANUAL SPECIAL MIDI CONNECTION
-//
-// The Crumar Mojo61B lower manual is a “passive” device (meaning it doesn’t need a separate power source, not that it’s 
-// electronically passive) and is attached to the main Mojo61 via a single MIDI connector.
-// It has zero onboard controls, not even output channel selection.
-// Physically it's eminently stackable and even has registration holes to receive the feet of the upper manual.
-// Its power must be coming on pins 1 and 3 of the connector, which are normally unused.
-// The power supply voltage could be 12V or 5V depending on the circuitry of the lower manual.
-// Thus the Mojo61 lower manual must use a special cable with all 5 pins wired straight thru.
-// If you want to use multiples of this unit, a channel-remapping MIDI merge device is required.
-// The Mojo 61B lower has been in production since 2017.
 
 
 // MIDI NOTE NUMBERING
@@ -186,51 +144,6 @@ HardwareSerial *Console = &Serial;
 #define MIDI_CHANNEL_PRESSURE 0xD0      // 1 data byte
 #define MIDI_PITCH_BEND 0xE0
 
-// how many MIDI serial ports will be merged with MIDI channel remapping
-// allowable range 1-3, 1 means a single channel which implies no merging, does a channel-remapped thru only
-// generally should be same as numPorts unless we consume some channel and don't merge it
-#define MIDI_MERGE_CHANS 1
-
-// flexible remapping is not implemented yet; this is simplistic
-const uint8_t remapMidiChans[] = {true, true, true};
-const uint8_t midiRemappedChans[] = {1, 2, 3};
-
-// Pointers to pre-existing HardwareSerial objects (board dependent).  Set these to be the desired set of ports to be serviced by the MIDI RX/merge engine.
-HardwareSerial *serialPorts[] = {
-      &Serial3
-    // , &Serial1
-    // , &Serial2
-};
-const uint8_t numPorts = sizeof(serialPorts) / sizeof(serialPorts[0]);
-
-// implemented functions are midiMergeThru, midiMerge2, midiMerge3
-#if MIDI_MERGE_CHANS == 1
-#define MIDI_MERGE_FUNC midiMergeThru
-#elif MIDI_MERGE_CHANS == 2
-#define MIDI_MERGE_FUNC midiMerge2
-#elif MIDI_MERGE_CHANS == 3
-#define MIDI_MERGE_FUNC midiMerge3
-#else
-#endif
-
-// Midi output channel for scanned notes
-// *** TODO: persist in NVRAM and set/query via sysex msg
-#define MERGE_OUTPUT_PORT_MAPPED_CHAN 0
-
-// Set up the MIDI library - compile time macros
-// the operation of the macros prevents turning the midi0, midi1, etc. into an indexed array
-MIDI_CREATE_INSTANCE(HardwareSerial, *serialPorts[0], midi0);
-
-#if MIDI_MERGE_CHANS > 1
-MIDI_CREATE_INSTANCE(HardwareSerial, *serialPorts[1], midi1);
-#endif
-
-#if MIDI_MERGE_CHANS > 2
-MIDI_CREATE_INSTANCE(HardwareSerial, *serialPorts[2], midi2);
-#endif
-
-#define MERGE_OUTPUT_PORT midi0
-
 class DiodeMatrixBase {
     protected:
         int colBasePin;
@@ -240,8 +153,6 @@ class DiodeMatrixBase {
         bool activeLow;
         int midiOutChan;
 
-        t_midiInterfaceHWSerialPtr midiInterface;
-
         virtual void configureHw() = 0;
         virtual uint8_t getMidiNoteNumFromPins(int baseMidiNote, int colPin, int rowPin) {
             return baseMidiNote + (colPin - colBasePin) * numRowPins + (rowPin - rowBasePin);
@@ -249,12 +160,10 @@ class DiodeMatrixBase {
 
     public:
         DiodeMatrixBase(
-            t_midiInterfaceHWSerialPtr midi,
             int midiOutChan,
             int colBase, int numCols, int rowBase, int numRows,
             bool activeLow = true)
         {
-            this->midiInterface = midi;
             this->midiOutChan = midiOutChan;
             this->colBasePin = colBase;
             this->numColPins = numCols;
@@ -308,11 +217,13 @@ class DiodeMatrixPedalboard_4x8 : public DiodeMatrixBase {
         }
 
     public:
-        DiodeMatrixPedalboard_4x8(t_midiInterfaceHWSerialPtr pMidi, int midiOutChan) : DiodeMatrixBase(pMidi, midiOutChan, 16, 8, 24, 16, true) {
+        // crashes if we allocate 8 cols x 24 rows, 20 works ok with freemem 4978
+        DiodeMatrixPedalboard_4x8(int midiOutChan) : DiodeMatrixBase(midiOutChan, 16, 8, 24, 8, true) {
             int note = 0;
             for (int colPin = this->colBasePin; colPin < this->colBasePin + this->numColPins; colPin++) {
                 for (int rowPin = this->rowBasePin; rowPin < this->rowBasePin + this->numRowPins; rowPin++) {
-                    debouncers[note++] = new DebouncerMidiNoteSingleContact(debounceMsec, pMidi, getMidiNoteNumFromPins(baseMidiNote, colPin, rowPin), midiOutChan);
+                    debouncers[note] = new DebouncerMidiNoteSingleContact(debounceMsec, getMidiNoteNumFromPins(baseMidiNote, colPin, rowPin), midiOutChan);
+                    note++;
                 }
             }
             configureHw();
@@ -418,11 +329,7 @@ void midiMerge3()
 #endif
 
 
-DiodeMatrixPedalboard_4x8 dmatrix(&midi0, MERGE_OUTPUT_PORT_MAPPED_CHAN);
-
-unsigned long lastMillis = 0;
-uint8_t ledState = LOW;
-unsigned long loopCount = 0;
+DiodeMatrixPedalboard_4x8 dmatrix(MERGE_OUTPUT_PORT_MAPPED_CHAN);
 
 //const MatrixEnt_Single_Static_t foo[] = {{true, 10, 20, 20, 4}};
 
@@ -439,6 +346,10 @@ void setup()
     startMidi();
     // delay(STARTUP_DELAY_MS);
 }
+
+// statics for the main loop
+unsigned long lastMillis = 0;
+unsigned long loopCount = 0;
 
 void loop() 
 {

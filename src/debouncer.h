@@ -1,7 +1,10 @@
 #pragma once
 #include <Arduino.h>
 #include <MIDI.h>
+
+#include "glob_gen.h"
 #include "midi_const.h"
+#include "data.h"
 
 // *** think about how to debounce in velocity mode where we have to consider two related signals
 //     need info from two different matrix objects, so need class VelocityMatrixPair
@@ -42,7 +45,6 @@ class DebouncerBase {
 // Debouncer for analog inputs (pot, rotary encoder, etc.) that generate CC channel messages
 class DebouncerMidiCCAnalog : public DebouncerBase {
     protected:
-        t_midiInterfaceHWSerialPtr midiInterface;
         midi::DataByte controlNum = 0;      // control number for CC message
         midi::Channel midiOutChan = 0;      // MIDI channel for the emitted CC messages
         int filteredCtrlValue = 0;          // running filtered control value
@@ -54,8 +56,7 @@ class DebouncerMidiCCAnalog : public DebouncerBase {
         bool inputIsStable = false;         // assume initially unstable so that messages will establish control values at startup
 
     public:
-        DebouncerMidiCCAnalog(uint8_t debounceMsec, t_midiInterfaceHWSerialPtr midiInterface, midi::DataByte controlNum, midi::Channel midiOutChan) : DebouncerBase(debounceMsec) {
-            this->midiInterface = midiInterface;
+        DebouncerMidiCCAnalog(uint8_t debounceMsec, midi::DataByte controlNum, midi::Channel midiOutChan) : DebouncerBase(debounceMsec) {
             this->controlNum = controlNum;
             this->midiOutChan = midiOutChan;
         }
@@ -69,9 +70,7 @@ class DebouncerMidiCCAnalog : public DebouncerBase {
             return inputVal >> 8;           // *** FIXME ***
         }
 
-        void activateControl() {
-           this->midiInterface->sendControlChange(controlNum, scaleInput(filteredCtrlValue), this->midiOutChan);
-        }
+        void activateControl();
 
         void deactivateControl() {}
 
@@ -92,11 +91,12 @@ class DebouncerMidiCCAnalog : public DebouncerBase {
 
 // *** Need to determine RAM consumption of these, want to support up to 256 notes (4 8x8 matrices)
 // As they currently exist these debouncers take 20 bytes each (an 8x8 matrix takes up 1280 bytes of RAM)
+// It looks like we can recover 7 bytes though by eliminating the top 4 items in favor of computing them
+// at runtime or storing them dynamically in structs with much smaller cardinality.
 class DebouncerMidiNoteSingleContact : public DebouncerBase {
     protected:
-        uint8_t midiNoteNum = 0;                // *** use callback?  but callback ptr is bigger than a uint8
-        t_midiInterfaceHWSerialPtr midiInterface;
-        uint8_t midiOutChan = 0;
+        uint8_t midiNoteNum = 0;                // *** recover noteNum from pinBlock
+        uint8_t midiOutChan = 0;                // *** recover midiOutChan from pinBlock
         const uint8_t midiDefaultVelocity = MIDI_VELOCITY_MAX;
     
         unsigned long activeTStamp = 0;         // time at which the input was first seen in the active state after being inactive
@@ -105,19 +105,18 @@ class DebouncerMidiNoteSingleContact : public DebouncerBase {
         bool ctrlIsOn = false;                  // true if the debounced control (note, switch, piston, ...) is currently active
 
     public:
-        DebouncerMidiNoteSingleContact(uint8_t debounceMsec, t_midiInterfaceHWSerialPtr midiInterface, uint8_t midiNoteNum, uint8_t midiOutChan) : DebouncerBase(debounceMsec) {
+        DebouncerMidiNoteSingleContact(uint8_t debounceMsec, uint8_t midiNoteNum, uint8_t midiOutChan) : DebouncerBase(debounceMsec) {
             this->midiNoteNum = midiNoteNum;
-            this->midiInterface = midiInterface;
             this->midiOutChan = midiOutChan;
         }
 
-        void activateControl() {
-            this->midiInterface->sendNoteOn(this->midiNoteNum, midiDefaultVelocity, this->midiOutChan);
+        DebouncerMidiNoteSingleContact() {
+
         }
 
-        void deactivateControl() {
-            this->midiInterface->sendNoteOff(this->midiNoteNum, midiDefaultVelocity, this->midiOutChan);
-        }
+        void activateControl();
+
+        void deactivateControl();
 
         void reset() {
             DebouncerBase::reset();
