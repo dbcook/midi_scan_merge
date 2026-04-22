@@ -7,16 +7,16 @@
 #include "debouncer.h"
 
 // Pin block definition for both matrix and parallel scan organization
-// All instances of this should be static
+// All instances of this should be static (const).  Cannot be a class because of this.
+// Relies on implicitly incrementing MIDI note numbers and debouncer index.
 // Note numbers are consecutive for [selectPin, readPin] tuples where readPin varies fastest, offset from baseMidiNoteNum
-// Debouncer index is also consecutive in the same order, offset from baseDebouncerIndex
-// if useSelect is false, selectBasePin and numSelectPins are ignored
-// Can't be a class since we have to define these in flash via
-// const PinBlock_t gPinBlocks[] = {
-//     {false, 0, 13, 0, 8, 0, 20, 4},
-//     {true, 28, 8, 36, 8, 0, 20, 5}
-// };
-// const int nPinBlocks = sizeof(gPinBlocks) / sizeof(PinBlock_t);
+// Debouncer index is also consecutive in the same order, offset from a separately stored list of baseDebouncerIndex per block.
+//
+// I rejected the idea of making the MIDI output interface configurable per block; instead making a design decision to
+// always send outputs to the same interface.  This means no splitter / distribution capability, but that seems immaterial
+// for the expected use cases of this code.
+//
+// TODO: Implmement hardcoded discontiguous pin blocks covering pins 2-3, 5-9, 11-12, 16-53 (cannot use 4, 10, 13, 14-15)
 //
 typedef struct PinBlock {
     bool useSelect;                 // true if block is for a diode matrix using select pins
@@ -24,19 +24,16 @@ typedef struct PinBlock {
     int numSelectPins;              // num of select pins, ignored if useSelect == false
     int readBasePin;                // start of read pin range
     int numReadPins;                // num of read pins
-    midi::DataByte baseMidiNoteNum; // starting of contiguous MIDI note num range
+    int numCtrls;                   // total number of controls (e.g. notes) scanned by the block.  Typ. 61 for organ keyboards.
+    midi::DataByte baseMidiNoteNum; // start of contiguous MIDI note num range
     midi::Channel midiOutChan;      // MIDI output channel for the block
 } PinBlock_t;
 
-// EXAMPLE PIN / NOTE CONFIG
-//  first block is 8 parallel pins starting at pin 20 and note num 32, output to MIDI chan 4
-//  second block is an 8x6 diode matrix with select pins starting at 28, read pins at 36, note nums starting at 20, sent to chan 5
-// Note that when useSelect is false, you should set the select pin to 13 (the LED) so that even if some bug
-// causes the select to be written, it will just blink the LED :
-const PinBlock_t gPinBlocks[] = {
-    {false, 13, 0, 20, 8, 32, 4},
-    {true, 28, 8, 36, 6, 20, 5}
-};
+
+// Include specific configuration here - it requires the above typedef
+#include "config_scan_pins.h"
+
+
 const int nPinBlocks = sizeof(gPinBlocks) / sizeof(PinBlock_t);
 
 int calcPinBlockSize(int pbIndx);

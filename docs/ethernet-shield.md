@@ -1,6 +1,6 @@
 # Arduino Ethernet Shield v2 Info
 
-Documented as compatible with Arduino Uno and Mega. The shield requires the Arduino to have the ICSP connector.
+Documented as compatible with Arduino Uno and Mega. The shield requires an Arduino that has the ICSP connector.
 
 ## GPIO Pins Summary
 
@@ -8,8 +8,8 @@ Documented as compatible with Arduino Uno and Mega. The shield requires the Ardu
 
 | Pin    | Description
 |---     | ---
-| D0     | RX0 1st hardware serial port "Serial" - bootloader uses
-| D1     | TX0 1st hardware serial port "Serial" - bootloader uses
+| D0     | RX0 1st hardware serial port "Serial" - used by bootloader and debug console
+| D1     | TX0 1st hardware serial port "Serial" - used by bootloader and debug console
 | D13    | Arduino LED "L"
 
 D0 and D1 (RX0 and TX0 serial) are needed for code loading.
@@ -38,17 +38,17 @@ The Ethernet Shield 2 consumes only the following GPIO pins:
 
 ### Mechanical Access
 
-The clear plastic carrier sled for the Ethernet Shield 2 blocks physical access to:
+The clear plastic carrier sled for the Ethernet Shield 2 blocks easy physical access to:
 
 * D14 = TX3 serial
 * A6
 * A7
 
 You can regain access to D14 and A7 of by using the shield without the plastic carrier, or by cutting away
-a little of the sled.  This will not work for A6 and you may need to create a "bent pin" for that since the
-PCB of the MIDI shield shadows it.
+a little of the sled (tested and works OK).  This will *not* work for A6 and you will need to create a bit
+of custom wiring for that since the PCB of the Ethernet shield shadows it.
 
-### Available Pins when Used with the Mega 2560
+### Available Pins when Ethernet Shield 2 is Used with the Mega 2560
 
 | Pin Range | Num Pins. | Alt. Functions
 | ----      | ----      | ---- 
