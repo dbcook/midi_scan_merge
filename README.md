@@ -11,6 +11,22 @@ This number can approach 500 total inputs with single-contact keyboards and 800 
 velocity sensing keyboards.  Thus in all cases multiple scanner/encoders will be needed, so maximizing
 their capacity is hepful.
 
+## State of the Project
+
+A prototype scanner was implemented that seemed to run quite quickly.  However the
+straightforward code design ended up using 35-40% too much memory and would only have supported two
+8x8 and one 8x4 diode matrix groups.
+
+A second version has been built that reduces RAM usage by enough to get
+the data for a full slate of four 8x8 diode matrix arrays into about 4KB of RAM.  The time per
+input scanned is about 9-12 usec depending on circumstances.  This scanner has passed several
+logging tests to prove that the pin block definitions are being read and scanned properly.
+Several matrix and block scenarios appear to run correctly.  Testing with actual input
+switches is about to begin.  Thus far all of the debugging has used the generic serial MIDI
+shield with the hardware hacked to attach it to the Mega 2560 SER3 port.
+
+The Ethernet Shield 2 is installed on the test rig but library integration has not begun.
+
 ## Features Summary
 
 * High performance input scanning of contacts and generation of MIDI note on/off messages
@@ -41,6 +57,12 @@ The firmware will spit out useful periodic messages on the primary serial port. 
 with the bootloader, so if you add a MIDI serial shield you should modify it to use a different hardware
 serial port in order to allow these messages to be seen and avoid having to flip the prog/run switch
 every time you load code.
+
+## Detailed Documentation
+
+[Ethernet Shield 2 with Arduino Mega 2560 Pin Availability](docs/ethernet-shield.md)
+
+[Generic MIDI serial shield pins and modification](docs/midi-shields.md)
 
 ## MIDI Transport
 
