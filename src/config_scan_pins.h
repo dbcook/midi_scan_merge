@@ -13,12 +13,11 @@
 //
 // This must define a const and fully initialized array of PinBlock_t named "gPinBlocks". 
 // To see the PinBlock_t struct declaration, right-click PinBlock_t below and use "go to definition"
-// In the example shown below:
-//     The first block is 8 parallel pins starting at pin 20 and note num 32, output to MIDI chan 4
-//     The second block is an 8x6 diode matrix with select pins starting at 28, read pins at 36, note nums starting at 20, sent to chan 5
 //
 // When useSelect is false, you should set the select pin to 13 (the LED) so that even if some bug
 // causes the select to be written, it will just blink the LED.
+//
+// Normally activeLow should be true for contact closures against a pullup resistor.
 //
 // You CANNOT use any of the following pins in any scan range:
 //    D0-D1 - hardware serial port reserved for bootloader serial and console debug messages
@@ -37,7 +36,20 @@
 // scan a hardcoded 8x8 (keyboard) or 8x4 (pedal) matrix sequence that dodges the pins that must be avoided.
 // This will not be necessary for parallel inputs as they can just be defined in short ranges to avoid the unusable pins.
 
+
+// const PinBlock_t gPinBlocks[]  = {
+//     {true,  true, 16, 8, 24, 8, 61, 20, 5}         // a full 61 note keyboard on a 8x8 matrix starting at pin 16
+// };
+
 const PinBlock_t gPinBlocks[]  = {
-    {false, 13, 0,  5, 5,  5, 32, 4},         // 5 parallel inputs starting at pin 5
-    {true,  16, 8, 24, 8, 61, 20, 5}         // a full 61 note keyboard on a 8x8 matrix starting at pin 16
+    {true,  true, 16, 8, 24, 4, 32, 20, 5}         // an 8x4 32 note pedalboard matrix starting at pin 16
 };
+
+// const PinBlock_t gPinBlocks[]  = {
+//     {true,  true, 16, 8, 24, 8, 61, 20, 5}         // a full 61 note keyboard on a 8x8 matrix starting at pin 16
+//    ,{true,  true, 32, 8, 40, 8, 61, 20, 6}         // a full 61 note keyboard on a 8x8 matrix starting at pin 32: 8% slower than lower pin range!
+// };
+
+// const PinBlock_t gPinBlocks[]  = {
+//     {false, true, 13, 0,  16, 32,  32, 20, 4}        // 32 parallel inputs starting at pin 16
+// };

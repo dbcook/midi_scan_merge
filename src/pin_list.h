@@ -1,8 +1,7 @@
 #pragma once
 #include <Arduino.h>
 #include <MIDI.h>
-//#include <ListLib.h>
-//#include "ArrayList.h"
+
 #include "data.h"
 #include "debouncer.h"
 
@@ -20,6 +19,7 @@
 //
 typedef struct PinBlock {
     bool useSelect;                 // true if block is for a diode matrix using select pins
+    bool activeLow;                 // true if input signals are active low
     int selectBasePin;              // start of select pin range, ignored if useSelect == false
     int numSelectPins;              // num of select pins, ignored if useSelect == false
     int readBasePin;                // start of read pin range

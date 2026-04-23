@@ -84,6 +84,7 @@ EXTERN t_midiInterfaceHWSerialPtr gMidiOutputInterface
 
 
 // RAM based fixed size array of debouncers - size must be sufficient for all configured diode matrix and parallel pin blocks
+// *** oops, can't have array of class objects
 EXTERN DebouncerMidiNoteSingleContact gDebouncers[MAX_DEBOUNCERS];
 
 // RAM based global array of debouncer base index for each pin block

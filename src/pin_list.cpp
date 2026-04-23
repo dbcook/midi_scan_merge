@@ -26,11 +26,15 @@ void initDebouncerBases() {
 
 // traverse the pinBlocks and init their debouncers accordingly
 void initDebouncers() {
-
+    // need to reset them all, seeing flakiness
+    for (int i = 0; i < MAX_DEBOUNCERS; i++) {
+        gDebouncers[i].reset();
+    }
 }
 
-// this can be sped up somewhat by computing the base debouncer index for each pin block at startup for 32-40 bytes of RAM
+// sped up somewhat by computing the base debouncer index for each pin block at startup for 32-40 bytes of RAM
 // cannot precompute for every pin - too much RAM
+// currently unused, new scan loop uses the precomputed bases plus an incremental index
 int calcDebouncerIndx(int pbIndx, int selectPin, int readPin) {
     int dbIndx = gDebouncerBases[pbIndx];
     const PinBlock_t *pb = &(gPinBlocks[pbIndx]);

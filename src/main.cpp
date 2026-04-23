@@ -5,6 +5,7 @@
 
 #define GEN_GLOBALS
 #include "glob_gen.h"
+#include "debug.h"
 #include "data.h"
 #include "midi_const.h"
 #include "debouncer.h"
@@ -12,21 +13,17 @@
 
 /*
 -------------------------------------------------------------------------------
-Pedalboard 32-note 8x4 matrix scanner and remapping MIDI merger for Arduino
+MIDI input scanner and remapping MIDI merger for Arduino Mega 2560 and others
 -------------------------------------------------------------------------------
 
- New implementation by dbcook using a well known Arduino MIDI library.
-   
-In the default configuration, scanned hardware notes are output to the first serial port (Serial) on MIDI channel 1.
+New implementation of a MIDI scanner / merger by dbcook using a well known Arduino MIDI library.
 
-Supported HW and pedal configurations:
-   * 32-note, 4x8 diode matrix, active LOW, bottom note is C2 (MIDI note 36).  Target is assumed to
-     be an ATMega 2560 with at least one and up to 3 MIDI shields.
-     Rows are wired to pins 2-9 and columns are wired to pins 10-13.
+Supports any combination of diode matrix and parallel input arrays up to a total of 65 inputs.
+With four 8x8 diode matrix arrays you get a max scanning capacity of 256 controls or notes.
 
-Boards:
-    Leonardo: 32KB flash, 2.5KB RAM, 20 digital pins of which 12 can be analog, 16MHz, built-in USB
-    ATMega: 69 digital pins (xx mappable as analog, yy as PWM, zz as serial)
+Arduino Board Info:
+    ATMega: 8KB RAM, 253,952 B flash, 69 digital pins (16 mappable as analog, 8 pins as 4 hardware serial ports), 16 MHz
+    Leonardo: 32KB flash, 2.5KB RAM, 20 digital pins of which 12 can be analog, 16MHz, class-compliant USB host
 
 */
 
@@ -52,27 +49,7 @@ Boards:
 // Build config
 // ----------------------------------------------------------------------------
 
-// Debug console system
-// All console code vanishes when USE_DEBUG_PRINT is false
-// If USE_DEBUG_PRINT is true, the MIDI shield must not use Serial but must use Serial1 - Serial3
-#define USE_DEBUG_PRINT true
-
-#if USE_DEBUG_PRINT
-const unsigned long consoleBaudRate = 115200;
-HardwareSerial *Console = &Serial;
-
-#define Console_print(...) Console->print(__VA_ARGS__)
-#define Console_println(...) Console->println(__VA_ARGS__)
-#define Console_flush Console->flush()
-#else
-#define Console_print(...)
-#define Console_println(...)
-#define Console_flush(...)
-#endif
-
 // Hardware setup for Mega 2560
-#define MEGA2560_LED_PIN 13
-#define LED_PIN MEGA2560_LED_PIN
 
 
 // *** not sure how much startup delay is justified - what are we waiting for?  Power supply stability?  Scope time...
@@ -96,10 +73,6 @@ HardwareSerial *Console = &Serial;
 #define KEYBOARD73_MAX_NOTES 73
 #define KEYBOARD88_MAX_NOTES 88
 
-// Sizing for the input keyboard/pedalboard compass
-#define BASE_NOTENUM PEDAL_LOW_NOTENUM
-#define NUM_NOTES PEDAL32_MAX_NOTES
-
 // MIDI standard interface serial rate is 31250 baud, which is stupid slow
 // NOTE ON are 3 byte messages so max ~1KHz msg rate, 2 byte msgs if using
 // "running status" would allow 1.5KHz message rate; however running status is not universally understood.
@@ -108,152 +81,54 @@ HardwareSerial *Console = &Serial;
 // doing MIDI over USB if the jitter there is decently controlled.
 
 
-// ----------------------------------------------------------------------------
-// MIDI message types and masks not used in this code but helpful for reference
-//  *** These are likely defined in the 47Effects MIDI library, remove when found ***
 
-// Status byte values.  Except as indicated, all are followed by 2 data bytes.
-#define MIDI_STATUS_MASK 0x80
-#define MIDI_CHANNEL_MASK 0x0F
+// new scan block processor based on flash PinBlock defs
+void scanPinBlocks() {
+    for (int i = 0; i < nPinBlocks; i++) {
+        // copying the PinBlock struct into RAM is almost twice as slow as reading directly from flash
+        const PinBlock_t * pb = &(gPinBlocks[i]);
+        midi::DataByte noteNum = pb->baseMidiNoteNum;
+        int dbIndx = gDebouncerBases[i];
 
-// All system messages have no channel number; instead having extended opcodes
-// system common messages
-#define MIDI_SYSTEM 0xF0                // has subclasses based on low nibble
-#define MIDI_SYSEX 0xF0                 // variable length, terminated by MIDI_EOX, 7 bit encoded
-#define MIDI_EOX 0xF7                   // end of SYSEX marker
-#define MIDI_SYS_MTC 0xF1               // MIDI Time Code, 1 byte
-#define MIDI_SYS_SONGPOS 0xF2           // Song Position Pointer, 2 bytes
-#define MIDI_SYS_SONGSEL 0xF3           // Song select, 1 byte
-#define MIDI_SYS_CABLESEL 0xF5          // Cable select, 1 byte
-#define MIDI_SYS_TUNEREQ 0xF6           // Tune request, 0 bytes
+        // These help confirm that the PinBlock is being read and processed correctly
+        // Console_print("cbase "); Console_println(pb->selectBasePin);
+        // Console_print("clim "); Console_println(pb->selectBasePin + pb->numSelectPins);
+        // Console_print("rbase "); Console_println(pb->readBasePin);
+        // Console_print("rlim "); Console_println(pb->readBasePin + pb->numReadPins);
 
-// system realtime, all with 0 data bytes
-#define MIDI_SYS_TIMING 0xF8            // Timing clock, sent at 24ppqn when clock is running
-#define MIDI_SYS_START 0xFA             // Start - clock starts
-#define MIDI_SYS_CONTINUE 0xFB          // Continue - clock continues after stop
-#define MIDI_SYS_STOP 0xFC              // Stop - when clock stops
-#define MIDI_SYS_ACTIVESENSING 0xFE     // Active sensing, sent by some devices when idle to indicate connection is alive
-#define MIDI_SYS_RESET 0xFF             // System reset - resets all devices to power-up state = panic button
+        // process the pin block
+        if (pb->useSelect) {
+            // diode matrix - read pins loop inside of select pins loop
+            midi::DataByte noteLim = pb->baseMidiNoteNum + pb->numCtrls;        // in case matrix has a non-full select row
+            int clim = pb->selectBasePin + pb->numSelectPins;
+            int rlim = pb->readBasePin + pb->numReadPins;
+            for (int colPin = pb->selectBasePin; colPin < clim; colPin++) {
+                digitalWrite(colPin, pb->activeLow ? LOW : HIGH);  // activate the select pin
 
+                // scan the read pins
+                for (int rowPin = pb->readBasePin; (rowPin < rlim) && (noteNum < noteLim); rowPin++) {
+                    int inp = digitalRead(rowPin);
 
-#define MIDI_NOTE_ON 0x90
-#define MIDI_NOTE_OFF 0x80
-#define MIDI_POLY_PRESSURE 0xA0
-#define MIDI_CONTROL_CHANGE 0xB0
-#define MIDI_PROGRAM_CHANGE 0xC0        // 1 data byte
-#define MIDI_CHANNEL_PRESSURE 0xD0      // 1 data byte
-#define MIDI_PITCH_BEND 0xE0
+                    //gDebouncers[dbIndx++].stateSampleDummy(pb->activeLow ? !inp : inp, noteNum++, pb->midiOutChan); // logs notes and chans sequence
+                    //gDebouncers[dbIndx++].stateSample(true, noteNum++, pb->midiOutChan);  // causes initial burst of noteOn for all notes
+                    //gDebouncers[dbIndx++].stateSample(false, noteNum++, pb->midiOutChan);  // make sure it never sees anything
 
-// *** TODO update this now that we have the diode matrix definitions in const flash
-
-class DiodeMatrixBase {
-    protected:
-        int colBasePin;
-        int numColPins;
-        int rowBasePin;
-        int numRowPins;
-        bool activeLow;
-        int midiOutChan;
-
-        virtual void configureHw() = 0;
-        virtual uint8_t getMidiNoteNumFromPins(int baseMidiNote, int colPin, int rowPin) {
-            return baseMidiNote + (colPin - colBasePin) * numRowPins + (rowPin - rowBasePin);
-        }
-
-    public:
-        DiodeMatrixBase(
-            int midiOutChan,
-            int colBase, int numCols, int rowBase, int numRows,
-            bool activeLow = true)
-        {
-            this->midiOutChan = midiOutChan;
-            this->colBasePin = colBase;
-            this->numColPins = numCols;
-            this->rowBasePin = rowBase;
-            this->numRowPins = numRows;
-            this->activeLow = activeLow;
-
-        }
-        int getColBasePin() { return this->colBasePin; }
-        int getNumColPins() { return this->numColPins; }
-        int getRowBasePin() { return this->rowBasePin; }
-        int getNumRowPins() { return this->numRowPins; }
-        bool getActiveLow() { return this->activeLow; }
-        
-        void setColPinActive(int pin) {
-            digitalWrite(pin, this->activeLow ? LOW : HIGH);
-        }
-        void setColPinInactive(int pin) {
-            digitalWrite(pin, this->activeLow ? HIGH : LOW);
-        }
-        bool translateInputSample(int rawInput) {
-            if (this->activeLow)
-                return rawInput == LOW ? true : false;
-            else
-                return rawInput == HIGH ? true : false;
-        }
-
-};
-
-
-// *** TODO make new scanner method using flash pinBlock definitions
-// The code below basically works but it stores an extra pointer per debouncer that uses a lot of memory.
-// The newer debouncer class and utilities to recover the debouncer index from (pinBlockNum, scanPin, readPin)
-// save all of that memory with a fairly modest reduction in performance.
-
-// Diode matrix scanning for a 4 cols x 8 rows matrix (usually for a pedalboard) where:
-//   column pins on the Arduino are contiguous
-//   row pins on the Arduino are contiguous
-//   the "column" pins are written as selectors, the row pins are read as the input
-//   MIDI note numbers start at col 0 row 0, proceeding row-wise as [0,0] [0,1] etc.
-class DiodeMatrixPedalboard_4x8 : public DiodeMatrixBase {
-    protected:
-        DebouncerMidiNoteSingleContact* debouncers[MIDI_MAX_NOTES];
-        long debounceMsec = 20;
-        const int baseMidiNote = PEDAL_LOW_NOTENUM;
-
-        void configureHw() {
-            uint8_t rowPinMode = activeLow ? INPUT_PULLUP : INPUT;
-            for (int i = colBasePin; i < colBasePin + numColPins; i++ ) {
-                pinMode(i, OUTPUT);
-                digitalWrite(i, HIGH);  // col select same for active low and active high
-            }
-            for (int j = rowBasePin; j < rowBasePin + numRowPins; j++ ) {
-                pinMode(j, rowPinMode);
-            }
-        }
-
-    public:
-        // crashes if we allocate 8 cols x 24 rows, 20 works ok with freemem 4978
-        DiodeMatrixPedalboard_4x8(int midiOutChan) : DiodeMatrixBase(midiOutChan, 16, 8, 24, 8, true) {
-            int note = 0;
-            for (int colPin = this->colBasePin; colPin < this->colBasePin + this->numColPins; colPin++) {
-                for (int rowPin = this->rowBasePin; rowPin < this->rowBasePin + this->numRowPins; rowPin++) {
-                    debouncers[note] = new DebouncerMidiNoteSingleContact(debounceMsec, getMidiNoteNumFromPins(baseMidiNote, colPin, rowPin), midiOutChan);
-                    note++;
+                    gDebouncers[dbIndx++].stateSample(pb->activeLow ? !inp : inp, noteNum++, pb->midiOutChan);
                 }
-            }
-            configureHw();
-        }
-
-        // [column, row] scanner for single-contact keys
-        void scan( ) {
-            for (int colPin = getColBasePin(); colPin < getColBasePin() + getNumColPins(); colPin++)
-            {
-                setColPinActive(colPin);
-
-                for (int rowPin = getRowBasePin(); rowPin < getNumRowPins(); rowPin++)
-                {
-                    uint8_t noteNumber = getMidiNoteNumFromPins(baseMidiNote, colPin, rowPin);
-                    DebouncerMidiNoteSingleContact* debouncer = this->debouncers[noteNumber];
-                    bool inputActive  = translateInputSample(digitalRead(rowPin));
-                    debouncer->stateSample(inputActive);
-                }
-                setColPinInactive(colPin);
+                digitalWrite(colPin, pb->activeLow ? HIGH : LOW);  // deactivate the select pin
             }
         }
-};
+        else {
+            // parallel non-matrix inputs - single loop on read pins
+            int rlim = pb->readBasePin + pb->numReadPins;
+            for (int rowPin = pb->readBasePin; rowPin < rlim; rowPin++) {
+                int inp = digitalRead(rowPin);
+                gDebouncers[dbIndx++].stateSample(pb->activeLow ? !inp : inp, noteNum++, pb->midiOutChan);
+            }
+        }
 
+    }
+}
 
 
 
@@ -336,22 +211,38 @@ void midiMerge3()
 #endif
 
 
-DiodeMatrixPedalboard_4x8 dmatrix(MERGE_OUTPUT_PORT_MAPPED_CHAN);
+void configurePins() {
+    for (int i = 0; i < nPinBlocks; i++) {
+        const PinBlock_t * pb = &gPinBlocks[i];
 
-//const MatrixEnt_Single_Static_t foo[] = {{true, 10, 20, 20, 4}};
+        if (pb->useSelect) {
+            for (uint8_t selPin = pb->selectBasePin; selPin < pb->selectBasePin + pb->numSelectPins; selPin++) {
+                pinMode(selPin, OUTPUT);
+                digitalWrite(selPin, pb->activeLow ? HIGH : LOW);
+            }
+        }
+        for (uint8_t readPin = pb->readBasePin; readPin < pb->readBasePin + pb->numReadPins; readPin++) {
+            pinMode(readPin, pb->activeLow ? INPUT_PULLUP : INPUT);
+        }
+    }
+
+}
+
 
 void setup() 
 {
-    pinMode(LED_PIN, OUTPUT);
+    pinMode(LED_BUILTIN, OUTPUT);
 
 #if USE_DEBUG_PRINT
     Console->begin(consoleBaudRate);
 #endif
-    
-    // MIDI related hw is configured upon instantiation of the diode matrix object
 
+    initDebouncers();
+    initDebouncerBases();
+
+    configurePins();
+    
     startMidi();
-    // delay(STARTUP_DELAY_MS);
 }
 
 // statics for the main loop
@@ -360,18 +251,20 @@ unsigned long loopCount = 0;
 
 void loop() 
 {
-    // loop rate tracking results
+    // loop rate tracking
     //   MIDI merge checking time is negligible, < 10 microsec per merged port
-    //   8x8 diode matrix takes about 100 usec each => can do 4 of them at 2 KHz
+    //   For reasons yet to be determined, diode matrix scanning time is a little nonlinear vs matrix size.
     //    raw rate with nothing but rate tracking:             165.7 KHz +/- 0.1 KHz
-    //    calling MIDI_MERGE_FUNC with num merge channels = 1: 109.0 KHz
-    //    calling 4x8 matrix scanner                         :  17.5 KHz
-    //    calling 8x8 matrix scanner                             9.64 KHz
+    //    only MIDI_MERGE_FUNC with num merge channels = 1.    117.0 KHz
+    //    single 8x4 matrix block                                2.64 KHz (379 usec = 11.8 usec per input)
+    //    single 8x8 matrix block                                1.56 KHz (pins 16-31 = 10.0 usec per input)  1.44 KHz (pins 32-48 = 10.8 usec per input)
+    //    two 8x8 matrix blocks                                  0.641 KHz (1560 usec = 12.2 usec per input )
+    //    single block of 32 parallels                           3.48 KHz (287 usec = 8.97 usec per input)
     loopCount++;
     unsigned long curMillis = millis();
     if (curMillis - lastMillis > 1000) {
         lastMillis = curMillis;
-        digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+        digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
         Console_print("rate: "); Console_println(loopCount);
         Console_print("memfree: "); Console_println(freeMemory());
         loopCount = 0;
@@ -379,7 +272,7 @@ void loop()
 
     MIDI_MERGE_FUNC();
 
-    dmatrix.scan();
+    scanPinBlocks();
 }
 
 

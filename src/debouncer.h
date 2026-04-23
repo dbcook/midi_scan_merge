@@ -3,6 +3,7 @@
 #include <MIDI.h>
 
 #include "glob_gen.h"
+#include "debug.h"
 #include "midi_const.h"
 #include "data.h"
 
@@ -24,12 +25,6 @@ class DebouncerBase {
         DebouncerBase() {}
 
     public:
-        DebouncerBase( uint8_t debounceMsec) {
-            this->debounceMsec = debounceMsec;
-        }
-
-        virtual void activateControl() = 0;
-        virtual void deactivateControl() = 0;
 
         virtual void reset() {
             debounceMsec = 20;
@@ -45,8 +40,6 @@ class DebouncerBase {
 // Debouncer for analog inputs (pot, rotary encoder, etc.) that generate CC channel messages
 class DebouncerMidiCCAnalog : public DebouncerBase {
     protected:
-        midi::DataByte controlNum = 0;      // control number for CC message
-        midi::Channel midiOutChan = 0;      // MIDI channel for the emitted CC messages
         int filteredCtrlValue = 0;          // running filtered control value
 
         // Lowpass filter params and tracking state
@@ -56,10 +49,7 @@ class DebouncerMidiCCAnalog : public DebouncerBase {
         bool inputIsStable = false;         // assume initially unstable so that messages will establish control values at startup
 
     public:
-        DebouncerMidiCCAnalog(uint8_t debounceMsec, midi::DataByte controlNum, midi::Channel midiOutChan) : DebouncerBase(debounceMsec) {
-            this->controlNum = controlNum;
-            this->midiOutChan = midiOutChan;
-        }
+        DebouncerMidiCCAnalog() : DebouncerBase() {}
 
         void setFuzzAndTrend(int fuzzTolerance, int stableTrendThresh) {
             this->fuzzTolerance = fuzzTolerance;
@@ -70,7 +60,7 @@ class DebouncerMidiCCAnalog : public DebouncerBase {
             return inputVal >> 8;           // *** FIXME ***
         }
 
-        void activateControl();
+        void setControlValue(midi::DataByte controlNum, midi::Channel midiOutChan);
 
         void deactivateControl() {}
 
@@ -95,8 +85,6 @@ class DebouncerMidiCCAnalog : public DebouncerBase {
 // MIDI output channel.
 class DebouncerMidiNoteSingleContact : public DebouncerBase {
     protected:
-        uint8_t midiNoteNum = 0;                // *** recover noteNum from pinBlock
-        uint8_t midiOutChan = 0;                // *** recover midiOutChan from pinBlock
         const uint8_t midiDefaultVelocity = MIDI_VELOCITY_MAX;
     
         unsigned long activeTStamp = 0;         // time at which the input was first seen in the active state after being inactive
@@ -105,17 +93,13 @@ class DebouncerMidiNoteSingleContact : public DebouncerBase {
         bool ctrlIsOn = false;                  // true if the debounced control (note, switch, piston, ...) is currently active
 
     public:
-        DebouncerMidiNoteSingleContact(uint8_t debounceMsec, uint8_t midiNoteNum, uint8_t midiOutChan) : DebouncerBase(debounceMsec) {
-            this->midiNoteNum = midiNoteNum;
-            this->midiOutChan = midiOutChan;
-        }
 
         DebouncerMidiNoteSingleContact() {
         }
 
-        void activateControl();
+        void activateControl(midi::DataByte noteNum, midi::Channel midiOutChan);
 
-        void deactivateControl();
+        void deactivateControl(midi::DataByte noteNum, midi::Channel midiOutChan);
 
         void reset() {
             DebouncerBase::reset();
@@ -125,38 +109,44 @@ class DebouncerMidiNoteSingleContact : public DebouncerBase {
             ctrlIsOn = false;
         }
 
-        void stateSample(bool sampleActive) {
-            if (sampleActive && this->ctrlIsOn) {
-                return;
-            }
-            if (!sampleActive && !this->ctrlIsOn) {
-                return;
-            }
-            if (sampleActive && !this->inputIsActive) {
-                activeTStamp = millis();
-                this->inputIsActive = true;
-            }
-            if (!sampleActive && this->inputIsActive) {
-                inactiveTStamp = millis();
-                this->inputIsActive = false;
-            }
-            if (sampleActive) {
-                if (this->inputIsActive && !this->ctrlIsOn) {
-                    if ((millis() - this->activeTStamp) >= this->debounceMsec  ) {
-                        this->ctrlIsOn = true;
-                        this->activateControl();
-                    }
+        // call this instead of the regular stateSample to verify the scanning sequence is correct
+        void stateSampleDummy(int sampleActive, midi::DataByte noteNum, midi::Channel midiOutChan) {
+            Console_print("note "); Console_println(noteNum);
+            Console_print("chan "); Console_println(midiOutChan);
+            Console_print("sample "); Console_println(sampleActive);
+        }
+
+        void stateSample(int sampleActive, midi::DataByte noteNum, midi::Channel midiOutChan) {
+            if (!sampleActive) {
+                if (!this->ctrlIsOn) return;    // sample is off, note is off, bail
+                // sample is off, but note is on - are we transitioning to release debounce state?
+                if (this->inputIsActive) {
+                    inactiveTStamp = millis();  // record time of transition
+                    this->inputIsActive = false;
+                }
+                // now we know note is on but we are in release debounce state
+                // see if debounce interval is satisfied
+                if ((millis() - this->inactiveTStamp) >= this->debounceMsec) {
+                    this->ctrlIsOn = false;
+                    Console_print("note off "); Console_println(noteNum);
+                    this->deactivateControl(noteNum, midiOutChan);
                 }
             }
             else {
-                if (!this->inputIsActive && this->ctrlIsOn) {
-                    if ((millis() - this->inactiveTStamp) >= this->debounceMsec) {
-                        this->ctrlIsOn = false;
-                        this->deactivateControl();
-                    }
+                if (this->ctrlIsOn) return;     // note is already on, we're done
+                // are we transitioning to input-active state (starting debounce)
+                if (!this->inputIsActive) {
+                    activeTStamp = millis();    // record time of transition
+                    this->inputIsActive = true;
+                }
+                // now we know the note is not on but we are in active debounce
+                // see if debounce interval is satisfied
+                if ((millis() - this->activeTStamp) >= this->debounceMsec  ) {
+                    this->ctrlIsOn = true;
+                    Console_print("note on "); Console_println(noteNum);
+                    this->activateControl(noteNum, midiOutChan);
                 }
             }
         }
-
 };
 

@@ -5,14 +5,14 @@
 #include "data.h"
 #include "debouncer.h"
 
-void DebouncerMidiNoteSingleContact::activateControl() {
-    gMidiOutputInterface->sendNoteOn(this->midiNoteNum, midiDefaultVelocity, this->midiOutChan);
+void DebouncerMidiNoteSingleContact::activateControl(midi::DataByte noteNum, midi::Channel midiOutChan) {
+    gMidiOutputInterface->sendNoteOn(noteNum, midiDefaultVelocity, midiOutChan);
 }
 
-void DebouncerMidiNoteSingleContact::deactivateControl() {
-    gMidiOutputInterface->sendNoteOff(this->midiNoteNum, midiDefaultVelocity, this->midiOutChan);
+void DebouncerMidiNoteSingleContact::deactivateControl(midi::DataByte noteNum, midi::Channel midiOutChan) {
+    gMidiOutputInterface->sendNoteOff(noteNum, midiDefaultVelocity, midiOutChan);
 }
 
-void DebouncerMidiCCAnalog::activateControl() {
-    gMidiOutputInterface->sendControlChange(controlNum, scaleInput(filteredCtrlValue), this->midiOutChan);
+void DebouncerMidiCCAnalog::setControlValue(midi::DataByte controlNum, midi::Channel midiOutChan) {
+    gMidiOutputInterface->sendControlChange(controlNum, scaleInput(filteredCtrlValue), midiOutChan);
 }
