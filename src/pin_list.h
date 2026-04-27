@@ -3,6 +3,7 @@
 #include <MIDI.h>
 
 #include "data.h"
+#include "midi_instruments.h"
 #include "debouncer.h"
 
 // Pin block definition for both matrix and parallel scan organization
@@ -16,6 +17,7 @@
 // for the expected use cases of this code.
 //
 // TODO: Implmement hardcoded discontiguous pin blocks covering pins 2-3, 5-9, 11-12, 16-53 (cannot use 4, 10, 13, 14-15)
+// TODO: Implement double-contact pin blocks.
 //
 typedef struct PinBlock {
     bool useSelect;                 // true if block is for a diode matrix using select pins
@@ -28,6 +30,27 @@ typedef struct PinBlock {
     midi::DataByte baseMidiNoteNum; // start of contiguous MIDI note num range
     midi::Channel midiOutChan;      // MIDI output channel for the block
 } PinBlock_t;
+
+// experimental struct with a union for multi-contact blocks
+
+#define MAX_CONTACTS 3
+typedef struct PbPinInfo{
+    int selectBasePin;              // start of select pin range, ignored if useSelect == false
+    int readBasePin;                // start of read pin range
+} PbPinInfo_t;
+
+typedef struct PinBlockMultContact {
+    int numContacts;                // number of contacts per key: 1 = regular, 2 = velocity, 3 = aftertouch
+    int numSelectPins;              // num of select pins, ignored if useSelect == false
+    int numReadPins;                // num of read pins
+    int numCtrls;                   // number of notes must be the same in all sub-blocks
+    bool useSelect;                 // all sub-blocks in the group must have same layout (parallel or matrix)
+    bool activeLow;                 // all sub-blocks must have same input polarity
+    midi::DataByte baseMidiNoteNum; // start of contiguous MIDI note num range
+    midi::Channel midiOutChan;      // MIDI output channel for the block
+    PbPinInfo_t pbPinInfo[MAX_CONTACTS];
+} PinBlockMulti_t;
+
 
 
 // Include specific configuration here - it requires the above typedef

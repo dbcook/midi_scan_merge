@@ -44,14 +44,21 @@ The Ethernet Shield 2 is installed on the test rig but library integration has n
 
 To configure, build and load this software into an Arduino, you need vscode with the PlatformIO plugin.
 
-Due to the need to save RAM and keep as much data in flash as possible, you will need to do some
+On Apple Silicon Macs, you need to install rosetta 2 to allow emulation of the x86 compiler used
+for the older Arduinos (Mega/Uno/Nano).
+
+```
+softwareupdate --install-rosetta
+```
+
+Due to the need to save RAM and keep as much data in flash as possible, you have to do a little
 configuration in the code to specify your diode matrix and parallel input configuration. Support
 is provided to specify a separate MIDI output channel and MIDI note base for each diode matrix group.
 
 There is enough
-memory and CPU to scan and debounce 256 inputs (four 8x8 diode matrix groups).  Nearly all the RAM is
-statically allocated to avoid problems with unpredictable heap usage.  The Platform IO build output
-in the terminal will tell you how much of the RAM and flash are used.
+memory and maybe (exact results not determined yet) enough CPU to scan and debounce 256 inputs in four 8x8 diode matrix groups.
+Nearly all the RAM is statically allocated to avoid problems with unpredictable heap usage.
+The build output in the terminal will tell you how much of the RAM and flash are used.
 
 The firmware will spit out useful periodic messages on the primary serial port.  This port is shared
 with the bootloader, so if you add a MIDI serial shield you should modify it to use a different hardware
@@ -119,16 +126,18 @@ the debouncer objects.
 
 ### CPU
 
-The 16MHz Mega 2560 seems to have enough grunt to handle its full capacity inputs with a scan rate near 2 Hz,
-which is entirely sufficient.
+The 16MHz Mega 2560 takes 9-12 microseconds per input scanned, depending on whether they are in a
+diode matrix where the select pins have to be written or a parallel block without that overhead.
+This means that the scan time for 3 61-note 8x8 matrix blocks (183 inputs) should be about 2 milliseconds.
 
 ### IO Pins
 
-Using the Ethernet Shield 2, the Mega 2560 has enough free IO pins to handle 4 full 8x8 diode matrix keyboards,
+With the Ethernet Shield 2 attached, the Mega 2560 has enough free IO pins to handle 4 full 8x8 diode matrix keyboards,
 or 3 8x8 matrices plus 16 analog inputs (expression pedals, rotary encoders, sliders/drawbars).
 
 If a MIDI serial shield is used and you do not want to have to flip PROG/RUN switches everytime you load code,
-you have to give up two IO pins and you cannot support four 8x8's.
+you have to give up two IO pins and you cannot support four 8x8's.  See [docs/midi-shields.md](docs/midi-shields.md)
+for specifics on wiring serial MIDI shields.
 
 ### Velocity Sensing
 

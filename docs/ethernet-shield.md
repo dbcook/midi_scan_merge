@@ -50,18 +50,19 @@ of custom wiring for that since the PCB of the Ethernet shield shadows it.
 
 ### Available Pins when Ethernet Shield 2 is Used with the Mega 2560
 
-| Pin Range | Num Pins. | Alt. Functions
-| ----      | ----      | ---- 
-| A0 - A15  | 16        | Analog I/O
-| D2 - D3   | 2         |
-| D4        | ---       | chip select for SD card
-| D5 - D9   | 5         |
-| D10       | ---       | chip select for WizNet 5500 Ethernet chip
-| D11 - D12 | 2         |
-| D13       | ---       | LED "L"
-| D14 - D19 | 6         | TX3, RX3, TX2, RX2, TX1, RX1 serial
-| D20 - D21 | 2         | SDA, SCL; or TWI interface connectors
-| D22 - D53 | 32        |
+| Pin Range | Num Pins Avail | Alt. Functions
+| ----      | ----           | ---- 
+| A0 - A15  | 16             | Analog I/O
+| D0 - D1   | ---            | Bootloader and console debug serial
+| D2 - D3   | 2              |
+| D4        | ---            | chip select for SD card
+| D5 - D9   | 5              |
+| D10       | ---            | chip select for WizNet 5500 Ethernet chip
+| D11 - D12 | 2              |
+| D13       | ---            | LED "L"
+| D14 - D19 | 6              | TX3, RX3, TX2, RX2, TX1, RX1 serial
+| D20 - D21 | 2              | SDA, SCL; or TWI interface connectors
+| D22 - D53 | 32             |
 
 Thus if we do not use the MIDI shield at all, we have available on the Mega 2560:
 
@@ -71,12 +72,12 @@ Thus if we do not use the MIDI shield at all, we have available on the Mega 2560
 That is enough for *four* 8x8 diode matrix keyboards, or a 65 pin parallel scanner.
 
 If we use the MIDI shield with the hardware hack to rewire it away from SER0 to (say) SER3, we lose
-D14 and D15 as well as A6, leaving only 46 digital pins, two shy of handling three 8x8 diode matrix
-scanners on the digital pins.
+D14 and D15, leaving only 47 digital pins, one shy of handling three 8x8 diode matrix
+scanners.
 
 We could get back to 65 pins by using the MIDI shield without the serial remapping hack, but this
 would require PROG / RUN switching when loading code and would prevent console debug messages.
-Console messages would need to be completely turned off in the code as well, so that the debug
+Console messages would need to be completely turned off in the code so that the debug
 facility neither intializes nor tries to use RX0/TX0.  Capability for this has already been
 implemented in the code.
 
