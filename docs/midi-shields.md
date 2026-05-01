@@ -25,7 +25,7 @@ daisy-chain hop delay between the first chord group and the second.  Thus the to
 arrival at the destination will be at least 22 milliseconds, which is not negligible.
 
 An even more problematic scenario is where as many as 100 messages may be sent simultaneously to reconfigure a group
-of organ stops or send a batch of note-off messages.
+of organ stops or send a batch of note-off messages for clearing a bunch of LEDs.
 Here the string of messages could take over 100 milliseconds in transit, so the arrival time spread will be
 very noticeable.
 
@@ -54,10 +54,10 @@ There are no upper headers for stacking additional shields above this one, so it
 in any stack, e.g. with the Ethernet shield underneath it.  The MIDI connectors are rather tall, so the normal
 upper header strips would be too short by about half.
 
-You could easily use multiple MIDI shields with an Arduino Mega without stacking.  The MIDI shields should only
-need +5V, GND and Serial TX/RX, so you could remove the headers and use 4-pin cables to connect them to the Mega.
+You could easily use multiple MIDI shields with an Arduino Due or Mega without stacking.  The MIDI shields should only
+need +5V, GND and Serial TX/RX, so you could remove the headers and use 4-pin cables to connect them to the Arduino.
 But overall if you want multiple MIDI input ports to make a serial to Ethernet or USB merger, I'd just make a
-little PCB with only the needed MIDI connectors and opto-isolators and route them to UARTs on the Mega.
+little PCB with only the needed MIDI connectors and opto-isolators and route them to UARTs on the Due/Mega.
 
 ### Prototyping Area
 
@@ -80,7 +80,7 @@ that's all you've got.
 
 ### Remedy for the PROG/RUN Problem When Using SER0
 
-When using an Arduino Mega 2560 with its four hardware serial ports, it's an easy hack to
+When using an Arduino Due or Mega 2560 with their four hardware serial ports, it's an easy hack to
 attach this board to a different port, eliminating the need for switch-flipping when loading code:
 
 1.   Clip off the D0 and D1 pins (RX0 and TX0) from the shield's header pins
