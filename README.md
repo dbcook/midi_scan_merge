@@ -1,19 +1,21 @@
 # Flexible MIDI Scanner - Merger for Arduinos
 
-This PlatformIO based project targets the Arduino Mega 2560 and is aimed at exploiting its large number
-of IO pins in order to scan up to four 8x8 diode matrix groups representing up to 256 discrete contacts.
-It performs high precision switch debouncing and emits MIDI NoteOn and NoteOff messages accordingly.
+This PlatformIO based project targets Arduino family processors with large digital IO pin counts,
+and is aimed at exploiting the number of IO pins in order to scan up to four 8x8 diode matrix groups
+representing up to 256 discrete contacts.
+
+We perform high precision switch debouncing and emit MIDI NoteOn and NoteOff messages accordingly.
 
 The system context for this is to support musical instruments such as pipe organs - actual or virtual - that
-may have a large number of inputs:  up to 5 61-note keyboards, a 32-note pedalboard, up to 100 momentary-contact
+may have a large number of inputs:  four or more 61-note keyboards, a 32-note pedalboard, up to 100 momentary-contact
 thumb buttons ("pistons" in traditional organ lingo), up to 25-30 toe pistons, and 5 analog expression pedals ("shoes").
-This number can approach 500 total inputs with single-contact keyboards and 800 with dual-contact
+These instruments can approach 500 total inputs with single-contact keyboards and 800 with dual-contact
 velocity sensing keyboards.  Thus in all cases multiple scanner/encoders will be needed, so maximizing
-their capacity is hepful.
+their capacity is useful to control cost and system interconnects.
 
 ## State of the Project
 
-A prototype scanner was implemented that seemed to run quite quickly.  However the
+A prototype scanner was implemented that seemed to run quite quickly on the Mega 2560.  However the
 straightforward code design ended up using 35-40% too much memory and would only have supported two
 8x8 and one 8x4 diode matrix groups.
 
@@ -25,6 +27,11 @@ Several matrix and block scenarios appear to run correctly.  Testing with actual
 switches is about to begin.  Thus far all of the debugging has used the generic serial MIDI
 shield with the hardware hacked to attach it to the Mega 2560 SER3 port.
 
+After discovery that the stock Arduino digital IO library routines were eating up an
+excessive amount of CPU, a third version has been implemented that uses the digitalWriteFast
+libary to drastically reduce the IO overhead and give a scan time per input of about 5 usec
+on the Arduino Mega 2560.
+
 The Ethernet Shield 2 is installed on the test rig but library integration has not begun.
 
 ## Features Summary
@@ -34,18 +41,41 @@ The Ethernet Shield 2 is installed on the test rig but library integration has n
 * Runs on fast or slow CPU without changes
 * Robust MIDI merge handling of all message types including SYSEX
     * Optional channel remapping of channel messages
-    * Number of merge input channels configurable up to 3 (all hardware serials on the Mega 2560)
+    * Number of merge input channels configurable up to 3 (all hardware serials on the Mega 2560, Due, and Teensy 4.1)
 * Parameterized to accommodate various input hardware without extensive code changes
 * Performance stats written to debug console
 * Built with PlatformIO plugin for vscode
 
+
+## Target Processors
+
+There are at least 3 suitable processors in the Arduino family with high pin counts and adequate speed.
+This table summarizes their capabilities and cost with Ethernet capability added.  The two
+Arduinos cost $50 but both need an Ethernet Shield ($30).  The Teensy 4.1 costs $31.50 with onboard Ethernet
+PHY and only needs a MagJack connector and a carrier board (est. $10), making it much cheaper and
+vastly more capable than the Arduinos.
+
+| Processor     | RAM       | Flash     | Speed     | Dig Pins  | Usable | USBHost | Cost | Remarks
+| ----          |----       |----       |----       |----       |----    |----     |----  |----
+| Ard Mega 2560 | 8 KB      | 256 KB    | 16 MHz    | 69        | 65     | NO      | 50   | Barely fast enough, eth $30
+| Arduino Due   | 96 KB     | 512 KB    | 84 MHz    | 69        | 65     | YES     | 50   | Fast enough, eth $30
+| Ard Leonardo  | 2.5 KB    | 32 KB     | 16 MHz    | 20        | 18     | YES     | 24   | Low pin count, small RAM
+| Teensy 4.1    | 1 MB      | 7936 KB   | 600 MHz   | 55 + 18   | TBD    | YES     | 42   | Max Overkill
+
+If you are committed to using Arduinos and don't want to mess with making carrier boards, the Due
+is the best choice.  It is a proper superset of the Mega 2560 at the same price, but adds 5x higher
+speed, USB host capability, 2x more flash, and 8x more RAM.  Because of this it's likely that I will
+drop support for the Mega 2560 in future releases.
+
+The Leonardo offers USB host capability and is half the cost of the Due, but has only 1/3 the IO pins
+and a really tiny amount of RAM, and is 5x slower.  At most it can handle one 8x8 keyboard matrix.
 
 ## Prerequisites and Building
 
 To configure, build and load this software into an Arduino, you need vscode with the PlatformIO plugin.
 
 On Apple Silicon Macs, you need to install rosetta 2 to allow emulation of the x86 compiler used
-for the older Arduinos (Mega/Uno/Nano).
+for the older Arduinos (Mega/Uno/Nano, maybe Due).
 
 ```
 softwareupdate --install-rosetta
@@ -55,8 +85,8 @@ Due to the need to save RAM and keep as much data in flash as possible, you have
 configuration in the code to specify your diode matrix and parallel input configuration. Support
 is provided to specify a separate MIDI output channel and MIDI note base for each diode matrix group.
 
-There is enough
-memory and maybe (exact results not determined yet) enough CPU to scan and debounce 256 inputs in four 8x8 diode matrix groups.
+There is enough memory and maybe (exact results not determined yet) enough CPU to scan and debounce
+256 inputs in four 8x8 diode matrix groups using even the slowest 16 MHz Arduinos.
 Nearly all the RAM is statically allocated to avoid problems with unpredictable heap usage.
 The build output in the terminal will tell you how much of the RAM and flash are used.
 
@@ -117,18 +147,22 @@ The last note in a big chord from the end of the chain could see 20-25 msec of l
 
 ### Memory
 
-The Arduino Mega 256 has only 8KB of RAM, representing a serious memory challenge.  The debouncers as
-currently implemented use 14 bytes of memory each, so 256 of them use 3.6K of RAM.  With the Ethernet
-and MIDI libraries there is very little
+The only processor of interest that presents memory challenges is the Arduino Mega 2560, which
+has only 8KB of RAM.  The debouncers as currently implemented use 14 bytes of memory each, so 256
+of them use 3.6K of RAM.  With the Ethernet and MIDI libraries there is very little
 left over - even keeping a list of pointers to the debouncers costs 1KB, so the configuration code where
 you define the diode matrix and parallel inputs has to be entirely flash-based and use computed indexes to
 the debouncer objects.
 
+Given that the Arduino Due is virtually identical to the Mega 2560 (even in cost), I strongly
+suggest that you should use the Due instead of the Mega 2560, especially as I may drop support for the
+Mega 2560 to get rid of some of the code malarkey that was necessary to make the Mega 2560 usable.
+
 ### CPU
 
-The 16MHz Mega 2560 takes 9-12 microseconds per input scanned, depending on whether they are in a
+The 16MHz Mega 2560 takes (with fast IO) about 5-6 microseconds per input scanned, depending on whether they are in a
 diode matrix where the select pins have to be written or a parallel block without that overhead.
-This means that the scan time for 3 61-note 8x8 matrix blocks (183 inputs) should be about 2 milliseconds.
+This means that the scan time for 3 61-note 8x8 matrix blocks (183 inputs) should be about 1 to 1.2 milliseconds.
 
 ### IO Pins
 
@@ -139,12 +173,41 @@ If a MIDI serial shield is used and you do not want to have to flip PROG/RUN swi
 you have to give up two IO pins and you cannot support four 8x8's.  See [docs/midi-shields.md](docs/midi-shields.md)
 for specifics on wiring serial MIDI shields.
 
+### IO Efficiency
+
+Initial testing with Arduino Mega 2560 showed that using the Arduino standard pin IO
+routines digitalRead() and digitalWrite() had a significant adverse impact on scan loop
+speeds, taking about 40% of the CPU per scan iteration.
+
+The reason is that these calls include various safety checks and mapping, and cost ~100 cycles
+per input line (said to be ~3 usec on a 16 MHz Arduino whereas a direct op is ~125 nanosec).
+
+It turned out to be drastically faster to use the digitalWriteFast library (which also includes
+read functions).  This is crucial on the slow Mega 2560.
+
+In order for digitalReadFast() to work the pin number has to be a compile time constant.  Thus to use this with our
+flexible pin block definition scheme we need a function that resolves a pin number in a variable to
+the specific digitalReadFast macro for that pin.  That has been accomplished using an array of
+function pointers stored in flash and a simple wrapper function that invokes the correct macro.
+This adds a single-digit number of clocks per invocation but is still about 10x faster than
+using digitalRead().
+
+An implementation using whole-byte reads of the CPU ports was considered but not adopted, because
+the mapping of IO pins to the CPU ports is irregular and it doesn't look like the additional
+reduction in clocks per IO read would be enough to matter.
+
+A theoretical further speedup would be to write code for predefined layouts of common pin blocks (8x8 and 
+4x8 diode arrays, plus 32 pin parallel) using fixed pin assignments for the select and read lines.
+This could explicitly use digitalReadFast and digitialWriteFast with no additional overhead, but 
+would be very hard to maintain because the loop code would have to be completely unrolled.
+
+
 ### Velocity Sensing
 
 Velocity sensing for keyboards (not yet implemented) will double the number of contacts and is expected to
 double or nearly double the memory consumption of each debouncer.  It will also slow down the scanning somewhat
 due to increased complexity of the algorithm.  However I think it should be possible to do velocity sensing
-on two 61-note keyboards with a single Mega 2560 at better than 1 KHz.
+on a 61-note keyboard with a single Mega 2560 at better than 1 KHz.
 
 ## MIDI DIN-5 Serial Cables
 
