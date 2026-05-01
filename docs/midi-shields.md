@@ -21,32 +21,36 @@ That would be acceptable if only sporadic single notes occur.  However, when sev
 nearly at once (think a big chord with 4-5 notes in each hand) on multiple nodes in the chain, the aggregate delay
 and arrival time spread between the notes becomes noticeable.  In the worst case 2-handed chord scenario with 4 hops
 in the chain, each hand's chord will take 5 msec to be initially transmitted and there will be 12 milliseconds of
-daisy-chain hop delay between the first chord group and the second.  Thus the total spread between the first and last notes'
-arrival at the destination will be at least 22 milliseconds, which is not negligible.
+daisy-chain hop delay between the first chord group and the second.  This amount of latency would not be an issue
+if it was consistent, but the total spread between the first and last notes' arrival at the destination will be
+at least 22 milliseconds, and it will not always be the same depending on which keyboards were used.
 
 An even more problematic scenario is where as many as 100 messages may be sent simultaneously to reconfigure a group
 of organ stops or send a batch of note-off messages for clearing a bunch of LEDs.
 Here the string of messages could take over 100 milliseconds in transit, so the arrival time spread will be
-very noticeable.
+very noticeable.  If notes were being sent over the same link there will be noticeable raggedness.
 
 Overall this makes a very strong case for using transports like USB-MIDI and Ethernet RTP-MIDI (aka AppleMidi)
 that are hundreds to thousands of times faster and make differential arrival time issues go away.
 
-## Generic Shield
+## Generic MIDI Shield
 
 The generic MIDI shield is extremely simple, basically being an adaptation to put MIDI connectors and an input opto-isolator
-on RX0 / TX0 (Arduino device name "Serial").  The use of SER0 is established in hardware and is NOT configurable in software
-but can (and should) be hacked in hardware as described below.
+on RX0 / TX0 (Arduino device name "Serial").  The use of SER0 is established in the shield's hardware and is NOT configurable in software
+but can (and should) be hacked as described below to avoid using SER0.
 Many listings for the same exact board design can be found on eBay, AliExpress, and elsewhere.
 
-The board has MIDI In, Out and Thru connectors.  It's essentially certain that the Thru connector is a hardwired
-mirror of the In port, since there are no traces on the board leading to any of the other serial ports.
-The MIDI In and Out cocnnectors are just wired to RX/TX of the SER0 UART on the Arduino.
+The board has MIDI In, Out and Thru connectors.
+The MIDI In and Out connectors are just wired to RX/TX of the SER0 UART on the Arduino.
+The Thru connector is a hardwired mirror of the In port as per the original MIDI reference design.
+The hardware THRU connection is useful as a zero-latency relay for a device that only consumes messages,
+but is useless on an input scanner that generates MIDI messages itself and must add them to the message stream.
 
 The only auxiliary functionality on the card is a mirrored RESET button (S1), and a PROG/RUN switch (S2) that disconnects
 the MIDI circuitry from SER0 when you are loading code into the Arduino, since the bootloader also uses SER0.
 
-This shield is plug-n-go and requires no assembly, but cannot be stacked without modifications.
+This shield is plug-n-go and requires no assembly, but needs a modification to change the Arduino serial 
+port used (see below).
 
 ### No Stacking Above
 
@@ -68,20 +72,21 @@ physically occupied by the shield's lower headers remain accessible in some form
 
 ### Usability Issue or Why There's a Switch on the MIDI Shield
 
-With this shield, unless you modify it as described below to use a different serial port
+With this shield, unless you modify it as described below to use a different serial port other than SER0
 on the Arduino, you MUST manually turn off the PROG/RUN switch S2 every time you load code into the Arduino,
 and turn it back on again afterward.  (The OFF position should really be labeled PROG).
 The switch is required because the MIDI shield is wired to use Arduino pins 0 and 1, which
 are shared with the bootloader and debug console.
 
-bvbbUbbsing the switch is a PITA because it prevents an easy setup for remote or fully automated code loading.
+Using the switch is a PITA because it prevents an easy setup for remote or fully automated code loading.
 Using SER0 that's shared with the bootloader is a really bad idea, except that on some Arduino boards
 that's all you've got.
 
-### Remedy for the PROG/RUN Problem When Using SER0
+### Remedy for the PROG/RUN Problem
 
 When using an Arduino Due or Mega 2560 with their four hardware serial ports, it's an easy hack to
-attach this board to a different port, eliminating the need for switch-flipping when loading code:
+attach this board to a different hardware serial port, eliminating the need for switch-flipping
+when loading code:
 
 1.   Clip off the D0 and D1 pins (RX0 and TX0) from the shield's header pins
 1.   Get a pair of header leads with plugs on one end, about 3" long.
@@ -94,8 +99,13 @@ I did this to one of my boards - only took 5 minutes and it works perfectly.
 
 ### GPIO Ports Used
 
+In the shield's default configuration:
+
 D0 = RX0. Connected to the MIDI In connector via an optoisolator (swtiched off via the slide switch S2)
 D1 = TX0. Connected to the MIDI Out connector.
+
+If you make the modification described above, these pins will no longer be used in favor of whichever
+higher serial port you chose.
 
 ## SparkFun Configurable MIDI Shield Kit
 
@@ -115,11 +125,8 @@ if those signals need to remain available for other shields.
 This board does not include the stackable headers in the kit; they would have to be added at the time you build the board.
 The SparkFun [hookup guide](https://learn.sparkfun.com/tutorials/midi-shield-hookup-guide) has more info about this.
 
-The SparkFun shield does not have a 3rd connector for MIDI Thru, so if you want Thru functionality you
-either have to do it in software or rewire the Out connector to be a Thru, which sacrifices the ability
-of the Arduino to send MIDI messages.  If you use the 47effects library, it's trivial to implement MIDI thru
-in software, so I don't see the lack of a 3rd connector as a problem.  A hardwired thru port that can't do
-merging with Arduino-generated messages seems not very useful anyway.
+The SparkFun shield does not have a 3rd connector for a hardware MIDI Thru. If you use the 47effects MIDI library,
+it's trivial to implement MIDI thru in software, so I don't see the lack of a 3rd connector as a problem.
 
 On the SparkFun MIDI shield, the pushbutton on D4 conflicts with the SD card chip select on the Ethernet Shield, so
 in such a stack, the D4 button would not be available (and should not be populated) as D4 has to be configured as an output
