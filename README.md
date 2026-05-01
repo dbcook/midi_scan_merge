@@ -224,12 +224,17 @@ This could explicitly use digitalReadFast and digitialWriteFast with no addition
 would be very hard to maintain because the loops would have to be completely unrolled.
 
 
-### Velocity Sensing
+### Velocity and Aftertouch Sensing
 
 Velocity sensing for keyboards (not yet implemented) will double the number of contacts and is expected to
 double or nearly double the memory consumption of each debouncer.  It will also slow down the scanning somewhat
 due to increased complexity of the algorithm.  However I think it should be possible to do velocity sensing
 on a 61-note keyboard with a single Mega 2560 at better than 1 KHz.
+
+Aftertouch sensing, seen on theater organs and synthesizers, involves 3 contacts per key.
+Implementing it just means stacking a 3rd layer of debounce atop the velocity sensing logic.
+Because of the number of IO pins needed, it will consume 3 8x8 matrix slots.  Thus without
+an IO extender you will only be able to scan one such keyboard per processor.
 
 ## MIDI DIN-5 Serial Cables
 
