@@ -14,9 +14,9 @@ Documented as compatible with Arduino Uno and Mega. The shield requires an Ardui
 
 D0 and D1 (RX0 and TX0 serial) are needed for code loading.
 
-### Pins Used by Arduino Mega 2560 Specific Functions of Interest
+### Pins Used by Arduino Due and Mega 2560 Specific Functions of Interest
 
-Mega 2560 has 3 additional hardware serial ports.  These can be used as GPIO if not configured
+The Due and Mega 2560 have 3 additional hardware serial ports.  These can be used as GPIO if not configured
 to be serial ports.
 
 | Pin    | Description
@@ -48,7 +48,7 @@ You can regain access to D14 and A7 of by using the shield without the plastic c
 a little of the sled (tested and works OK).  This will *not* work for A6 and you will need to create a bit
 of custom wiring for that since the PCB of the Ethernet shield shadows it.
 
-### Available Pins when Ethernet Shield 2 is Used with the Mega 2560
+### Available Pins when Ethernet Shield 2 is Used with the Due or Mega 2560
 
 | Pin Range | Num Pins Avail | Alt. Functions
 | ----      | ----           | ---- 
@@ -64,7 +64,7 @@ of custom wiring for that since the PCB of the Ethernet shield shadows it.
 | D20 - D21 | 2              | SDA, SCL; or TWI interface connectors
 | D22 - D53 | 32             |
 
-Thus if we do not use the MIDI shield at all, we have available on the Mega 2560:
+Thus if we do not use the MIDI shield at all, we have available:
 
 * 49 digital pins
 * 16 analog pins
@@ -101,7 +101,7 @@ be reclaimed for GPIO use whenever the Ethernet shield is present:
 * D4 = CS chip select for SD card
 * D10 - selects the WizNet card
 
-The default Arduino LED is on D13 in the Mega 2560.  It could be used as an output but
+The default Arduino LED is on D13 in the Due and Mega 2560.  It could be used as an output but
 probably not as an input (check this).
 
 * D13 - the Ethernet shield drives a mirror of the Mega onboard LED "L".  This LED is immediately
@@ -111,7 +111,7 @@ a power indicator and is not programmable.
 The SPI interface is implemented via the separate ICSP header in the middle of the shield v2 and mega boards.
 
 In documentation for the original Ethernet shield, D10-12 are described as implementing the SPI connection to the WizNet chip.
-With the advent of the ICSP header, those lines are freed up for use by the Mega.
+With the advent of the ICSP header, those lines are freed up for use by the Due/Mega.
 
 Ethernet LEDS - activity, FDX and link LEDS are driven directly from the WizNet chip
 

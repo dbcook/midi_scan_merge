@@ -110,7 +110,7 @@ every time you load code.
 
 ## Detailed Documentation
 
-[Ethernet Shield 2 with Arduino Mega 2560 Pin Availability](docs/ethernet-shield.md)
+[Ethernet Shield 2 with Arduino Due/ Mega 2560 Pin Availability](docs/ethernet-shield.md)
 
 [Generic MIDI serial shield pins and modification](docs/midi-shields.md)
 
