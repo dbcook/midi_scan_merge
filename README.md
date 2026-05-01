@@ -1,4 +1,4 @@
-# Flexible MIDI Scanner - Merger for Arduinos
+# Flexible MIDI Scanner - Merger - Decoder for Arduinos
 
 This PlatformIO based project targets Arduino family processors with large digital IO pin counts,
 and is aimed at exploiting the number of IO pins in order to scan up to four 8x8 diode matrix groups
@@ -19,33 +19,46 @@ A prototype scanner was implemented that seemed to run quite quickly on the Mega
 straightforward code design ended up using 35-40% too much memory and would only have supported two
 8x8 and one 8x4 diode matrix groups.
 
-A second version has been built that reduces RAM usage by enough to get
+A second version was built that reduces RAM usage by enough to get
 the data for a full slate of four 8x8 diode matrix arrays into about 4KB of RAM.  The time per
-input scanned is about 9-12 usec depending on circumstances.  This scanner has passed several
+input scanned was about 9-12 usec depending on circumstances.  This scanner has passed several
 logging tests to prove that the pin block definitions are being read and scanned properly.
 Several matrix and block scenarios appear to run correctly.  Testing with actual input
-switches is about to begin.  Thus far all of the debugging has used the generic serial MIDI
+switches is about to begin.  Thus far all of the debugging has used a generic serial MIDI
 shield with the hardware hacked to attach it to the Mega 2560 SER3 port.
 
 After discovery that the stock Arduino digital IO library routines were eating up an
 excessive amount of CPU, a third version has been implemented that uses the digitalWriteFast
-libary to drastically reduce the IO overhead and give a scan time per input of about 5 usec
-on the Arduino Mega 2560.
+libary to drastically reduce the IO overhead and give a scan time per input of about 6 usec
+on the Mega 2560.
 
 The Ethernet Shield 2 is installed on the test rig but library integration has not begun.
+USB MIDI cannot be tested on a Mega 2560 since it does not support a full USB host. That
+will require an Arduino Due or Teensy 4.1.
 
 ## Features Summary
 
 * High performance input scanning of contacts and generation of MIDI note on/off messages
+* Supports diode matrix and parallel input blocks in any combination
 * Time-based debounce of both attack and release
-* Runs on fast or slow CPU without changes
-* Robust MIDI merge handling of all message types including SYSEX
-    * Optional channel remapping of channel messages
-    * Number of merge input channels configurable up to 3 (all hardware serials on the Mega 2560, Due, and Teensy 4.1)
+* Runs on fast or slow CPUs without changes
+* Robust serial MIDI thru/merge handling of all message types
+    * Optional channel separation remapping of channel messages
+    * Number of merge input channels configurable up to 3 (all of the hardware serials on the Due and Mega 2560)
 * Parameterized to accommodate various input hardware without extensive code changes
 * Performance stats written to debug console
 * Built with PlatformIO plugin for vscode
 
+## Future Features
+
+* Programmable pinBlock parameters via SYSEX messages (with readback)
+* Velocity sense (dual contact) scanning
+* Aftertouch (triple contact) scanning
+* Support IO extenders
+* MIDI decoder (receive messages on a channel and activate outputs)
+* General purpose carrier and interconnect board for Teensy 4.1
+* Diode matrix boards for parallel keyboards
+* LED driver for MIDI decoder
 
 ## Target Processors
 
@@ -86,7 +99,7 @@ configuration in the code to specify your diode matrix and parallel input config
 is provided to specify a separate MIDI output channel and MIDI note base for each diode matrix group.
 
 There is enough memory and maybe (exact results not determined yet) enough CPU to scan and debounce
-256 inputs in four 8x8 diode matrix groups using even the slowest 16 MHz Arduinos.
+180-256 inputs in up to four 8x8 diode matrix groups using even the slowest 16 MHz Arduinos.
 Nearly all the RAM is statically allocated to avoid problems with unpredictable heap usage.
 The build output in the terminal will tell you how much of the RAM and flash are used.
 
@@ -103,18 +116,17 @@ every time you load code.
 
 ## MIDI Transport
 
-This package supports multiple transport methods - serial, USB and Ethernet - built around the family of MIDI libraries
+This package will support multiple transport methods - serial, USB and Ethernet - built around the family of MIDI libraries
 that have been developed around the 47Effects core library.  As a practical matter, the original 31kbps serial MIDI using
 the DIN-5 connectors is too slow for an organ, especially if daisy-chained.  Therefore the USB and Ethernet
-RTP-MIDI transport methods are preferred.
+RTP-MIDI transport methods are much preferred, though serial MIDI is being used for testing.
 
-If USB transport is wanted, you have to use a more recent Arduino board like the Leonardo that has full class-compliant
-USB host capability.  However, these have far fewer input pins; on a Leonardo you can only support one 8x8 matrix,
-and it only has 2.5KB of RAM, about half of which will be consumed by 64 debouncers.
+If USB transport is wanted, you have to use a more recent Arduino board like the Due or Leonardo that has full class-compliant
+USB host capability.
 
-The result is that for maximum IO capacity and lowest MIDI latency, using the Mega 2560 with an Ether Shield 2
-is apparently the most powerful option.
-
+For Ethernet capability, you can either use a Teensy 4.1 with its onboard Ethernet, or an Arduino Due with an Ethernet shield.
+Of these, the Teensy is much less expensive and vastly more powerful, so it wins by a mile if you can make a suitable
+carrier board for it. Both can be powered by USB.
 
 ## Operation
 
@@ -124,22 +136,30 @@ Switch debounce is performed for both the "make" and "break" actions.  20 millis
 
 ### Performance
 
+The scan cycle rate is accurately measured using the Arduino millisecond timer and emitted on the serial
+console port at 1 Hz, allowing the effects of algorithm changes to be seen immediately.
+
 The initial version of this package runs the scan loop for a single 8x8 matrix (64 inputs, 1 typical keyboard)
-at about 10 kHz.  Scan rate is accurately measured using the Arduino millisecond timer and emitted on the serial
-console port at 1 Hz, allowing the effects of algorithm changes to be seen immediately.  The processing is very
-linear so that the expected scan rate for four 8x8 matrices (256 inputs) should be better than 2 KHz.
+at about 1.5 kHz on a Mega 2560, without the benefit of the new fastread IO.  Fastread is expected
+to remove about 4 microsec per input read (currently 10.0-10.8 depending on which pins are being read),
+which should immediately improve the single 8x8 scan rate to around 2.5 KHz.  On a linear assumption
+this would mean two 8x8's would scan at 1.25 KHz and three 8x8's at 0.9 KHz. All of these rates should be
+adequate to keep scan latency from ever being noticeable.
 
 ### MIDI Merge and Daisy Chaining
 
 If a serial MIDI shield is used, the software can be configured to perform a merge operation, where messages
-arriving on the serial MIDI link are sent onward over the output transport link.  MIDI channel remapping is possible
-though not enabled by default.  Multiple serial inputs are supported in the software, though the inexpensive
-MIDI serial shields cannot be stacked without some hardware hacking.
+arriving on the serial MIDI link are sent onward over the output transport link.  MIDI channel separation remapping
+is implemented if that is needed for merging inputs from multiple scanners that are emitting notes on the same
+channel.  
 
-It would be possible for a few of these Arduino scanners to be daisy-chained by configuring for both serial
-output and input.  But this is not really a good idea from a latency perspective;
-daisy chaining of serial MIDI ports introduces 2+ msec MINIMUM of delay per hop, so single notes
-from the most distant manual in a 4-manual daisy chain could be delayed by as much as 10-12 msec.
+It is possible for a few of these Arduino scanners to be daisy-chained by configuring for both serial
+output and input.  
+Multiple serial inputs are supported in the software, though the inexpensive
+MIDI serial shields cannot be stacked without some hardware hacking.
+But daisy chaining is not a good idea from a latency perspective;
+chaining of serial MIDI ports introduces 2+ msec MINIMUM of delay per hop, so single notes
+from the most distant manual in a 4-manual daisy chain could be delayed by as much as 10 msec.
 The last note in a big chord from the end of the chain could see 20-25 msec of latency.
 
 
@@ -160,18 +180,20 @@ Mega 2560 to get rid of some of the code malarkey that was necessary to make the
 
 ### CPU
 
-The 16MHz Mega 2560 takes (with fast IO) about 5-6 microseconds per input scanned, depending on whether they are in a
+The 16MHz Mega 2560 takes (with fastread IO) about 5-6 microseconds per input scanned, depending on whether they are in a
 diode matrix where the select pins have to be written or a parallel block without that overhead.
 This means that the scan time for 3 61-note 8x8 matrix blocks (183 inputs) should be about 1 to 1.2 milliseconds.
 
+The Arduino Due is 5x faster and the Teensy 4.1 is 50x faster, so CPU considerations for these are currently nil.
+
 ### IO Pins
 
-With the Ethernet Shield 2 attached, the Mega 2560 has enough free IO pins to handle 4 full 8x8 diode matrix keyboards,
-or 3 8x8 matrices plus 16 analog inputs (expression pedals, rotary encoders, sliders/drawbars).
+With the Ethernet Shield 2 attached, the Mega 2560 and Due have enough free IO pins to handle 4 full 8x8 diode matrix keyboards,
+or 3 8x8's plus 12 (Due) or 16 (Mega) analog inputs such as expression pedals, rotary encoders and sliders/drawbars.
 
 If a MIDI serial shield is used and you do not want to have to flip PROG/RUN switches everytime you load code,
-you have to give up two IO pins and you cannot support four 8x8's.  See [docs/midi-shields.md](docs/midi-shields.md)
-for specifics on wiring serial MIDI shields.
+you have to give up two IO pins and you cannot support four 8x8's if an Ethernet shield is also present.
+See [docs/midi-shields.md](docs/midi-shields.md) for specifics on wiring serial MIDI shields.
 
 ### IO Efficiency
 
@@ -199,7 +221,7 @@ reduction in clocks per IO read would be enough to matter.
 A theoretical further speedup would be to write code for predefined layouts of common pin blocks (8x8 and 
 4x8 diode arrays, plus 32 pin parallel) using fixed pin assignments for the select and read lines.
 This could explicitly use digitalReadFast and digitialWriteFast with no additional overhead, but 
-would be very hard to maintain because the loop code would have to be completely unrolled.
+would be very hard to maintain because the loops would have to be completely unrolled.
 
 
 ### Velocity Sensing
@@ -223,9 +245,12 @@ __MIDI DIN-5 connector pinout__
 4       | MIDI source IN  | MIDI source OUT  | MIDI source OUT    (+5V)
 5       | MIDI sink OUT   | MIDI sink IN     | MIDI sink IN
 
-The actively driven line is always the MIDI current sink (Pin 5).
+The actively driven line (driven by MIDI OUT) is always the MIDI current sink (Pin 5).
+This line is driven active low by the MIDI OUT side.
 The MIDI current source is just a +5V supply through a 220 Ohm pullup resistor.
-On the MIDI IN connector, the data signal on pins 4/5 is usually hooked to an optoisolator.
+On the MIDI IN connector, the data signal on pins 4/5 is typically hooked to an optoisolator
+so that when the MIDI OUT side pulls the sink low, current flows through the LED of the
+optoisolator on the MIDI IN side.
 
 The MIDI recommended circuit connections are shown here:
 https://learn.sparkfun.com/tutorials/midi-tutorial/hardware--electronic-implementation

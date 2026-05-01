@@ -1,0 +1,16 @@
+Copyright (c) 2026 by David B. Cook (caveduck17 -antispam- gmail)
+This package is distributed under the Apache 2.0 license.  See https://www.apache.org/licenses/LICENSE-2.0.txt
+Note that as provided in the license there is no warranty or assumption of liability whatsoever and you use this
+software at your own risk.
+
+Libraries used by this work carry various licenses as noted below.  None have been modified here.
+
+digitalWriteFast: BSD 3-clause
+MIDI Library: MIT
+USB-MIDI: MIT
+
+ListLib (unused so far): Apache 2.0
+ArrayList: Apache 2.0
+MemoryFree by mpflaga: MIT
+
+MIDIUSB (probably will not use): conflicting licenses: LGPL 2.1, MIT variant
