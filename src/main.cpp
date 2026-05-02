@@ -196,26 +196,40 @@ void startMidi()
 #if ETHERNET_MIDI_CONNECT
     AM_DBG_SETUP(consoleBaudRate);       // *** may collide with our debug setup?
 
-
-    APPLEMIDI_CREATE_DEFAULTSESSION_INSTANCE();
-
-    // generate a unique hostname using the macaddr
+    // Ethernet interface setup before AppleMidi    
+    Ethernet.init(4);   // set sockets to 4, giving larger 4k buffers
+    // form unique hostname using the macaddr
     // hostname limit is generally 64 bytes in a single label (fqdn can be 253)
-    // we are going to make "hostname-xxxxxx" with last 3 octets of mac addr so max 71 chars + the null
-    char buf[72];
-    snprintf(buf, sizeof(buf), "%s-%2X%2X%2X", ETH_HOSTNAME, gEthernetMac[3], gEthernetMac[4], gEthernetMac[5]);
-
+    // make "hostname-XXxxXXxxXXxx" with 6 octets of mac addr so max 78 chars + the null
+    // This name will be unique among all official Arduino Ethernet shields ever made with baked-in mac addrs
+    char buf[79];
+    snprintf(buf, sizeof(buf), ETH_HOSTNAME_PREFIX "-%2X%2X%2X%2X%2X%2X",
+        gEthernetMac[0], gEthernetMac[1], gEthernetMac[2],
+        gEthernetMac[3], gEthernetMac[4], gEthernetMac[5]);
     Ethernet.setHostname(buf);
+    // Get IP via DHCP.  We cannot continue if this fails.
     while (Ethernet.begin(gEthernetMac) == 0) {
         Console_println(F("Failed DHCP, retrying"));
         delay(500);
     }
-
-    // print session info so it can be found by the upstairs app - name is most important since we use DHCP
     AM_DBG(F("DHCP Success.  Host params:"));
+    AM_DBG(F(" hostname: "), buf);
+    AM_DBG(F(" IP      : "), Ethernet.localIP());
+
+    // make session name globally (and I do mean globally) unique by changing the default prefix and appending the full macaddr
+    // I don't know if we will want to provide multiple sessions; if so they will need to be uniqified with a session counter.
+    snprintf(buf, sizeof(buf), "Apple-dbcproc-%2X%2X%2X%2X%2X%2X",
+        gEthernetMac[0], gEthernetMac[1], gEthernetMac[2], 
+        gEthernetMac[3], gEthernetMac[4], gEthernetMac[5]);
+
+    // This gives a MIDI interface called "MIDI" on the default port 5004, with sess name "Apple-Arduino", running EthernetUDP
+    // We override the session name to make it unique across all devices
+    //APPLEMIDI_CREATE_DEFAULTSESSION_INSTANCE();
+    APPLEMIDI_CREATE_INSTANCE(EthernetUDP, MIDI, buf, DEFAULT_CONTROL_PORT);
+
+    AM_DBG(F("AppleMIDI UDP session started.  Params:"));
     AM_DBG(F(" Name: "), AppleMIDI.getName());
-    AM_DBG(F(" IP  :"), Ethernet.localIP());
-    AM_DBG(F(" Port:"), AppleMIDI.getPort());
+    AM_DBG(F(" Port: "), AppleMIDI.getPort());
 
     MIDI.begin(ETH_MIDI_LISTEN_CHAN);
 

@@ -112,10 +112,13 @@ EXTERN const uint8_t numPorts
 
 #if ETHERNET_MIDI_CONNECT
 
-#define ETH_HOSTNAME "dbc_midi_processor"
+#define ETH_HOSTNAME_PREFIX "dbc_midiproc"
 
-// MIDI channel the Ethernet port listens on
-//#define ETH_MIDI_LISTEN_CHAN ((midi::Channel)1U)
+// This transport instance name has to be kept unique vs the serial and USB transport names
+#define ETH_MIDI_NAME ETHMIDI
+
+// MIDI channel the Ethernet port listens on for decoding and commands
+// Set to all chans since we assume that everything sent to our session is for us
 #define ETH_MIDI_LISTEN_CHAN MIDI_CHANNEL_OMNI
 
 // Newer Ethernet shields have a MAC address printed on a sticker on the shield
