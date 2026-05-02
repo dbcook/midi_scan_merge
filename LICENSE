@@ -8,6 +8,7 @@ Libraries used by this work carry various licenses as noted below.  None have be
 digitalWriteFast: BSD 3-clause
 MIDI Library: MIT
 USB-MIDI: MIT
+AppleMIDI Library: SW is public domain, hardware portion is CCSA 4.0
 
 ListLib (unused so far): Apache 2.0
 ArrayList: Apache 2.0

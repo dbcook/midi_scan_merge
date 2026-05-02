@@ -1,10 +1,18 @@
 #include <Arduino.h>
-#include <MIDI.h>
+#include <Ethernet3.h>
 #include <ListLib.h>
 #include <MemoryFree.h>
+#include <MIDI.h>
+
+// USE_EXT_CALLBACKS is necessary to catch any MIDI events
+// Since it only takes about 150 bytes of flash we turn it on by default.
+#define USE_EXT_CALLBACKS
+#include <AppleMIDI.h>
 
 #define GEN_GLOBALS
 #include "glob_gen.h"
+#include "stringify.h"
+#include "config_features.h"
 #include "fastread.h"
 #include "debug.h"
 #include "data.h"
@@ -13,9 +21,9 @@
 #include "pin_list.h"
 
 /*
--------------------------------------------------------------------------------
-MIDI input scanner and remapping MIDI merger for Arduino family processors
--------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------
+MIDI input scanner and remapping MIDI merger for Arduino and Teensy family processors
+-------------------------------------------------------------------------------------
 
 This is an organ oriented MIDI scanner whose primary function is to read digital
 and analog input from various devices (keyboards, pedalboards, expression
@@ -26,9 +34,9 @@ The implementation uses the well known 47Effects Arduino MIDI library, which
 supports multiple transport interfaces including MIDI 31kbps serial (DIN-5 plugs),
 USB-MIDI and Ethernet MIDI (RTP-MIDI / Apple Midi).
 
-This package supports any combination of diode matrix and parallel input arrays up to a total of 65 inputs.
-With four 8x8 diode matrix arrays you get a max scanning capacity of 256 controls or notes.
-
+This package supports any combination of diode matrix and parallel input arrays up to
+a total of 64-65 inputs.  This could allow as many as 7 8x8 diode matrix arrays
+on the more powerful processors.
 */
 
 // scan component speed test routines
@@ -151,7 +159,8 @@ void pitchBendHandlerMidi0(midi::Channel channel, int pitchval) {
 //
 void startMidi()
 {
-#if MIDI_MERGE_PORTS > 0
+#if MERGE_SERIAL_INPUTS
+#if MIDI_MERGE_SERIAL_PORTS > 0
     // Merge with optional remapping
     // Remapping via the callbacks is a bit tedious but the callbacks have varying signatures
     // Need separate handlers for each MIDI port since you can't introspect the port from inside the callback
@@ -173,15 +182,82 @@ void startMidi()
     // Decoder-only setup that is a sink of messages on a specific channel and does no merge
     //midi0.begin(decodeChan);
     //midi0.turnThruOff();
-#endif
+#endif // MIDI_MERGE_SERIAL_PORTS > 0
 
-#if MIDI_MERGE_PORTS > 1
+#if MIDI_MERGE_SERIAL_PORTS > 1
     midi1.begin(MIDI_CHANNEL_OMNI);
 #endif
 
-#if MIDI_MERGE_PORTS > 2
+#if MIDI_MERGE_SERIAL_PORTS > 2
     midi2.begin(MIDI_CHANNEL_OMNI);
 #endif
+#endif // MERGE_SERIAL_INPUTS
+
+#if ETHERNET_MIDI_CONNECT
+    AM_DBG_SETUP(consoleBaudRate);       // *** may collide with our debug setup?
+
+
+    APPLEMIDI_CREATE_DEFAULTSESSION_INSTANCE();
+
+    // generate a unique hostname using the macaddr
+    // hostname limit is generally 64 bytes in a single label (fqdn can be 253)
+    // we are going to make "hostname-xxxxxx" with last 3 octets of mac addr so max 71 chars + the null
+    char buf[72];
+    snprintf(buf, sizeof(buf), "%s-%2X%2X%2X", ETH_HOSTNAME, gEthernetMac[3], gEthernetMac[4], gEthernetMac[5]);
+
+    Ethernet.setHostname(buf);
+    while (Ethernet.begin(gEthernetMac) == 0) {
+        Console_println(F("Failed DHCP, retrying"));
+        delay(500);
+    }
+
+    // print session info so it can be found by the upstairs app - name is most important since we use DHCP
+    AM_DBG(F("DHCP Success.  Host params:"));
+    AM_DBG(F(" Name: "), AppleMIDI.getName());
+    AM_DBG(F(" IP  :"), Ethernet.localIP());
+    AM_DBG(F(" Port:"), AppleMIDI.getPort());
+
+    MIDI.begin(ETH_MIDI_LISTEN_CHAN);
+
+    // Set up callbacks to monitor AppleMidi connections
+
+    // connect/disconnect are the standard callbacks available without USE_EXT_CALLBACKS
+    AppleMIDI.setHandleConnected([](const APPLEMIDI_NAMESPACE::ssrc_t & ssrc, const char* name) {
+        gEthConnections++;
+        AM_DBG(F("Eth connect "), ssrc, name, F(" NSessions "), gEthConnections);
+    });
+    AppleMIDI.setHandleDisconnected([](const APPLEMIDI_NAMESPACE::ssrc_t & ssrc) {
+        gEthConnections--;
+        AM_DBG(F("Eth disconnect "), ssrc, F(" NSessions "), gEthConnections);
+    });
+
+    // for scanner/encoder functions, the main scanner routine will just need to call
+    // MIDI.sendNoteOn(note, vel, channel) in concert with the debouncers. The debouncer
+    // will have to be given enough information to know what transport to send over.
+    // This has already been a RAM consumption issue for the Arduino Mega.
+    
+    // for decoder functions we'll need to add callbacks for the messages we accept
+    // The basic channel message callbacks are these:
+#if 0
+    MIDI.setHandleControlChange([](Channel channel, byte v1, byte v2) {
+        AM_DBG(F("ControlChange"), channel, v1, v2);
+    });
+    MIDI.setHandleProgramChange([](Channel channel, byte v1) {
+        AM_DBG(F("ProgramChange"), channel, v1);
+    });
+    MIDI.setHandlePitchBend([](Channel channel, int v1) {
+        AM_DBG(F("PitchBend"), channel, v1);
+    });
+    MIDI.setHandleNoteOn([](byte channel, byte note, byte velocity) {
+        AM_DBG(F("NoteOn"), channel, note, velocity);
+    });
+    MIDI.setHandleNoteOff([](byte channel, byte note, byte velocity) {
+        AM_DBG(F("NoteOff"), channel, note, velocity);
+    });
+#endif
+
+#endif // ETHERNET_MIDI_CONNECT
+
 }
 
 
@@ -240,8 +316,8 @@ void loop()
     if (curMillis - lastMillis > 1000) {
         lastMillis = curMillis;
         digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-        Console_print("rate: "); Console_println(loopCount);
-        Console_print("memfree: "); Console_println(freeMemory());
+        Console_print(F("rate: ")); Console_println(loopCount);
+        Console_print(F("memfree: ")); Console_println(freeMemory());
         loopCount = 0;
     }
 

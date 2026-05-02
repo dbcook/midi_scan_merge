@@ -5,6 +5,7 @@
 // Debug console system
 // All console code vanishes when USE_DEBUG_PRINT is false
 // If USE_DEBUG_PRINT is true, the MIDI shield (if present) must not use Serial but must use Serial1 - Serial3
+// ALWAYS use F("msg") to send the literals to flash instead of RAM
 #define USE_DEBUG_PRINT true
 
 #if USE_DEBUG_PRINT

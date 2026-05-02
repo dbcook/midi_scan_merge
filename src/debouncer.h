@@ -111,9 +111,9 @@ class DebouncerMidiNoteSingleContact : public DebouncerBase {
 
         // call this instead of the regular stateSample to verify the scanning sequence is correct
         void stateSampleDummy(int sampleActive, midi::DataByte noteNum, midi::Channel midiOutChan) {
-            Console_print("note "); Console_println(noteNum);
-            Console_print("chan "); Console_println(midiOutChan);
-            Console_print("sample "); Console_println(sampleActive);
+            Console_print(F("note ")); Console_println(noteNum);
+            Console_print(F("chan ")); Console_println(midiOutChan);
+            Console_print(F("sample ")); Console_println(sampleActive);
         }
 
         void stateSample(int sampleActive, midi::DataByte noteNum, midi::Channel midiOutChan) {
@@ -143,7 +143,7 @@ class DebouncerMidiNoteSingleContact : public DebouncerBase {
                 // see if debounce interval is satisfied
                 if ((millis() - this->activeTStamp) >= this->debounceMsec  ) {
                     this->ctrlIsOn = true;
-                    Console_print("note on "); Console_println(noteNum);
+                    Console_print(F("note on ")); Console_println(noteNum);
                     this->activateControl(noteNum, midiOutChan);
                 }
             }
