@@ -3,6 +3,7 @@
 #include <ListLib.h>
 #include <MemoryFree.h>
 #include <MIDI.h>
+#include <AppleMIDI.h>
 
 // USE_EXT_CALLBACKS is necessary to catch any MIDI events
 // Since it only takes about 150 bytes of flash we turn it on by default.
@@ -222,51 +223,72 @@ void startMidi()
         gEthernetMac[0], gEthernetMac[1], gEthernetMac[2], 
         gEthernetMac[3], gEthernetMac[4], gEthernetMac[5]);
 
-    // This gives a MIDI interface called "MIDI" on the default port 5004, with sess name "Apple-Arduino", running EthernetUDP
-    // We override the session name to make it unique across all devices
-    //APPLEMIDI_CREATE_DEFAULTSESSION_INSTANCE();
-    APPLEMIDI_CREATE_INSTANCE(EthernetUDP, MIDI, buf, DEFAULT_CONTROL_PORT);
+    // The following create a MIDI interface object called "ETHMIDI" which has an AppleMidi session object as its transport.
+    // The AppleMidi session runs on the default port 5004, with a session name that we specify, running EthernetUDP
+    // The name of the MIDI instance var is directly specified by the 2nd parameter to APPLEMIDI_CREATE_INSTANCE.
+    // The name of the AppleMidi instance var is Apple##foo where foo is param 2 to the create-instance call.
+    //
+    // The varnames are both based on the 2nd parameter to APPLEMIDI_CREATE_INSTANCE.  This basename MUST be a
+    // compile-time literal.  There is no way to make it otherwise given how the libraries work; these objects have to
+    // reside at specific locations once created since interrupt-driven callbacks are in play.  It's OK to take their
+    // addresses, but if you copy the objects to another location, things will quit working and you will have an
+    // interesting debug session figuring out why.
+    // Therefore we must use compile-time programming to set the varnames if we want multiple sessions.
+    //
+    // We override the default basename of "MIDI" so that we can make unique across all devices, which aids
+    // discovery by the client software.
+    //
+    
+    APPLEMIDI_CREATE_INSTANCE(EthernetUDP, ETHMIDI, buf, DEFAULT_CONTROL_PORT);
 
     AM_DBG(F("AppleMIDI UDP session started.  Params:"));
     AM_DBG(F(" Name: "), AppleMIDI.getName());
     AM_DBG(F(" Port: "), AppleMIDI.getPort());
 
-    MIDI.begin(ETH_MIDI_LISTEN_CHAN);
+    // capture the interface in MIDI lib land
+    //gMidiEthOutputInterface = &ETHMIDI;
+    gMidiEthOutputInterface = &ETH_MIDI_BASENAME;
+    gMidiEthOutputInterface->begin(ETH_MIDI_LISTEN_CHAN);
 
+    // capture the AppleMidi instance needed to manipulate callbacks etc.
+    gAppleMidiInstance = &AppleETHMIDI;
+    
     // Set up callbacks to monitor AppleMidi connections
 
     // connect/disconnect are the standard callbacks available without USE_EXT_CALLBACKS
-    AppleMIDI.setHandleConnected([](const APPLEMIDI_NAMESPACE::ssrc_t & ssrc, const char* name) {
+    gAppleMidiInstance->setHandleConnected([](const APPLEMIDI_NAMESPACE::ssrc_t & ssrc, const char* name) {
         gEthConnections++;
         AM_DBG(F("Eth connect "), ssrc, name, F(" NSessions "), gEthConnections);
     });
-    AppleMIDI.setHandleDisconnected([](const APPLEMIDI_NAMESPACE::ssrc_t & ssrc) {
+    gAppleMidiInstance->setHandleDisconnected([](const APPLEMIDI_NAMESPACE::ssrc_t & ssrc) {
         gEthConnections--;
         AM_DBG(F("Eth disconnect "), ssrc, F(" NSessions "), gEthConnections);
     });
 
     // for scanner/encoder functions, the main scanner routine will just need to call
-    // MIDI.sendNoteOn(note, vel, channel) in concert with the debouncers. The debouncer
-    // will have to be given enough information to know what transport to send over.
+    // gMidiEthOutputInterface->sendNoteOn(note, vel, channel) in concert with the debouncers.
+    // The debouncer will have to be given enough information to know what transport to send over.
     // This has already been a RAM consumption issue for the Arduino Mega.
     
     // for decoder functions we'll need to add callbacks for the messages we accept
-    // The basic channel message callbacks are these:
-#if 0
-    MIDI.setHandleControlChange([](Channel channel, byte v1, byte v2) {
+#if ETHERNET_MIDI_DECODE_INPUT
+    gMidiEthOutputInterface->setHandleNoteOn([](byte channel, byte note, byte velocity) {
+        AM_DBG(F("NoteOn"), channel, note, velocity);
+    });
+    gMidiEthOutputInterface->setHandleNoteOff([](byte channel, byte note, byte velocity) {
+        AM_DBG(F("NoteOff"), channel, note, velocity);
+    });
+    gMidiEthOutputInterface->setHandleControlChange([](Channel channel, byte v1, byte v2) {
         AM_DBG(F("ControlChange"), channel, v1, v2);
     });
+#endif
+#if 0
+    // The remaining basic channel message callbacks are these:
     MIDI.setHandleProgramChange([](Channel channel, byte v1) {
         AM_DBG(F("ProgramChange"), channel, v1);
     });
     MIDI.setHandlePitchBend([](Channel channel, int v1) {
         AM_DBG(F("PitchBend"), channel, v1);
-    });
-    MIDI.setHandleNoteOn([](byte channel, byte note, byte velocity) {
-        AM_DBG(F("NoteOn"), channel, note, velocity);
-    });
-    MIDI.setHandleNoteOff([](byte channel, byte note, byte velocity) {
-        AM_DBG(F("NoteOff"), channel, note, velocity);
     });
 #endif
 

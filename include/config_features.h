@@ -8,9 +8,6 @@
 
 // Major features
 
-// What channel scanned note and CC messages are sent on (independent of transport)
-// *** TODO: persist in NVRAM and set/query via sysex msg
-#define MIDI_SCAN_OUTPUT_CHAN 0
 
 // Contact debouncer allocation
 // The largest this could ever be would be 8*64 = 512, which would support 7 8x8 diode matrix
@@ -32,74 +29,105 @@
 // Serial MIDI Interfaces
 //---------------------------------------
 
+// *** working on allowing serial output without reading any input ports
+// all combinations of SERIAL_MIDI_INPUT and SERIAL_MIDI_OUTPUT are valid
 
+#define SERIAL_MIDI_INPUT true
+#define SERIAL_MIDI_OUTPUT false
+
+// Configure serial input port count and merging
+// if we have active MIDI serial input ports, assume for now that we are merging them all
+// ***FEATURE (low priority) add support for having ports+channels that we consume and other that are forwarded
+#if SERIAL_MIDI_INPUT
+#define MIDI_SERIAL_INPUT_PORTS 1
 #define MERGE_SERIAL_INPUTS true
+#endif // SERIAL_MIDI_INPUT
+
+// Configure number of serial input ports to be merged onto the output transport(s)
+#if MERGE_SERIAL_INPUTS
+#define MIDI_MERGE_SERIAL_PORTS 1
+#if MIDI_MERGE_SERIAL_PORTS > MIDI_SERIAL_INPUT_PORTS
+#error MIDI_MERGE_SERIAL_PORTS must be <= MIDI_SERIAL_INPUT_PORTS
+#endif
+#endif
+
+// Configure serial output port count
+#if SERIAL_MIDI_OUTPUT
+#define MIDI_SERIAL_OUTPUT_PORTS 1
+#if MIDI_SERIAL_OUTPUT_PORTS > 1
+#error MIDI_SERIAL_OUTPUT_PORTS > 1 unsupported!
+#endif
+#endif // SERIAL_MIDI_OUTPUT
+
+// Configure array of port addresses needed
+#if SERIAL_MIDI_INPUT || SERIAL_MIDI_OUTPUT
+
+// compute total number of serial ports = max(input, output)
+#if MIDI_SERIAL_INPUT_PORTS > MIDI_SERIAL_OUTPUT_PORTS
+#define NUM_SERIAL_PORTS MIDI_SERIAL_INPUT_PORTS
+#else
+#define NUM_SERIAL_PORTS MIDI_SERIAL_OUTPUT_PORTS
+#endif
+
+EXTERN HardwareSerial *serialPorts[]
+#ifdef GEN_GLOBALS
+= {
+#if NUM_SERIAL_PORTS == 1
+      &Serial3
+#elif NUM_SERIAL_PORTS == 2
+      &Serial3
+    , &Serial2
+#elif NUM_SERIAL_PORTS == 3
+      &Serial3
+    , &Serial2
+    , &Serial1
+#else
+#error NUM_SERIAL_PORTS has unsupported value!
+#endif // MIDI_MERGE_SERIAL_PORTS
+}
+#endif // GEN_GLOBALS
+;
+
+#endif // SERIAL_MIDI_INPUT || SERIAL_MIDI_OUTPUT
 
 #if MERGE_SERIAL_INPUTS
 
-// Number of serial MIDI ports to read and merge
-#define MIDI_MERGE_SERIAL_PORTS 1
+// Whether to do any channel separation remapping when merging serial MIDI input streams.
+// Channel separation is required if there is any possible collision
+// where a [channel, notenum] tuple is duplicated between two sources.
+//
+// Generally when merging daisy chained inputs in the organ world we will need to do
+// per-source MIDI channel separation since there are a lot of bespoke keyboard scanners 
+// out there on which you cannot conveniently set the output channel.
 
-// Whether to do any channel separation remapping when merging serial MIDI input streams
 #define DO_CHANNEL_SEPARATION_REMAP true
-
-// MIDI output channel for merge/thru channel msgs
-// Should be same as MIDI_SCAN_OUTPUT_CHAN except in rare cases
-#define MERGE_OUTPUT_PORT_MAPPED_CHAN MIDI_SCAN_OUTPUT_CHAN
 
 // Pointers to system defined HardwareSerial objects (number of them is target dependent)
 // on which MIDI messages arrive.
 // Only define ports that will be used; no duplicates allowed.
 // MIDI interfaces midi0, midi1, midi2 will be assigned to these ports in order
+//
 // Output MIDI serial messages will all go to the FIRST defined port (which becomes midi0)
 // The order of Serial3, Serial2, Serial1 maximimizes contiguous IO pins on Arduino Due and Mega.
-EXTERN HardwareSerial *serialPorts[]
-#ifdef GEN_GLOBALS
-= {
-#if MIDI_MERGE_SERIAL_PORTS == 1
-      &Serial3
-    // , &Serial2
-    // , &Serial1
-#elif MIDI_MERGE_SERIAL_PORTS == 2
-      &Serial3
-    , &Serial2
-    // , &Serial1
-#elif MIDI_MERGE_SERIAL_PORTS == 3
-      &Serial3
-    , &Serial2
-    , &Serial1
-#else
-#error MIDI_MERGE_SERIAL_PORTS has illegal value!
-#endif
-}
-#endif
-;
 
 #if DO_CHANNEL_SEPARATION_REMAP
 
 // whether the incoming MIDI port should get remapped
-EXTERN const uint8_t remapMidiChans[]
+EXTERN const uint8_t remapMidiChans[NUM_SERIAL_PORTS]
 #ifdef GEN_GLOBALS
-= {true, true, true}
+= {true}
 #endif
 ;
 
 // Channel to which each incoming serial MIDI port is remapped.
 // They must be unique, and different from the channel on which this scanner emits.
-EXTERN const uint8_t midiRemappedChans[]
+EXTERN const uint8_t midiRemappedChans[NUM_SERIAL_PORTS]
 #ifdef GEN_GLOBALS
-= {1, 2, 3}
+= {1}
 #endif
 ;
 
 #endif // DO_CHANNEL_SEPARATION_REMAP
-
-// Number of serial MIDI RX ports that are getting processed
-EXTERN const uint8_t numPorts
-#ifdef GEN_GLOBALS
- = sizeof(serialPorts) / sizeof(serialPorts[0])
- #endif
- ;
 
 #endif // MERGE_SERIAL_INPUTS
 
@@ -109,13 +137,16 @@ EXTERN const uint8_t numPorts
 
 #define ETHERNET_MIDI_CONNECT true
 #define ETHERNET_MIDI_OUTPUT true
+#define ETHERNET_MIDI_DECODE_INPUT true
 
 #if ETHERNET_MIDI_CONNECT
 
 #define ETH_HOSTNAME_PREFIX "dbc_midiproc"
 
-// This transport instance name has to be kept unique vs the serial and USB transport names
-#define ETH_MIDI_NAME ETHMIDI
+// This transport instance names generated from this have to be kept unique vs the serial and USB transport names
+// It MUST resolve to a compile-time literal, not a string constant
+#define ETH_MIDI_BASENAME ETHMIDI
+#define ETH_APPLE_BASENAME AppleETHMIDI
 
 // MIDI channel the Ethernet port listens on for decoding and commands
 // Set to all chans since we assume that everything sent to our session is for us

@@ -53,12 +53,30 @@ MIDI_CREATE_INSTANCE(HardwareSerial, *serialPorts[2], midi2);
 
 #endif
 
+#if MIDI_SERIAL_OUTPUT
 // ALL MIDI serial output messages go to the first defined serial port
 EXTERN t_midiInterfaceHWSerialPtr gMidiSerialOutputInterface
 #ifdef GEN_GLOBALS
  = &midi0
 #endif
 ;
+#endif
+
+#if ETHERNET_MIDI_CONNECT
+// This one has to be initialized at runtime
+EXTERN t_midiInterfaceEthPtr gMidiEthOutputInterface
+#ifdef GEN_GLOBALS
+    = NULL
+#endif
+;
+
+EXTERN t_appleMidiInstancePtr gAppleMidiInstance
+#ifdef GEN_GLOBALS
+    = NULL
+#endif
+;
+
+#endif
 
 // number of active Ethernet AppleMidi connections
 EXTERN int gEthConnections
