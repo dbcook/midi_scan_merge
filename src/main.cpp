@@ -1,7 +1,11 @@
 #include <Arduino.h>
 #include <Ethernet3.h>
 #include <ListLib.h>
+#if defined(ARDUINO_AVR_MEGA2560)
 #include <MemoryFree.h>
+#elif defined(ARDUINO_SAM_DUE)
+// MemoryFree library is arduino specific
+#endif
 #include <MIDI.h>
 #include <AppleMIDI.h>
 
@@ -12,6 +16,7 @@
 
 #define GEN_GLOBALS
 #include "glob_gen.h"
+#include "nv_mem.h"
 #include "stringify.h"
 #include "config_features.h"
 #include "fastread.h"
@@ -353,7 +358,10 @@ void loop()
         lastMillis = curMillis;
         digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
         Console_print(F("rate: ")); Console_println(loopCount);
+#if defined(ARDUINO_AVR_MEGA2560)
         Console_print(F("memfree: ")); Console_println(freeMemory());
+#elif defined(ARDUINO_SAM_DUE)
+#endif
         loopCount = 0;
     }
 

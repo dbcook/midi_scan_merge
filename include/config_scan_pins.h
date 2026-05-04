@@ -45,24 +45,24 @@
 // This will not be necessary for parallel inputs as they can just be defined in short ranges to avoid the unusable pins.
 
 // A few constants to make the block defs more readable
-#define MATRIX true
+#define DIODE_MATRIX true
 #define PARALLEL false
 #define ACTIVE_LOW true
 
 // A single 8x8 keyboard matrix, 61 notes, starting on pin 16, output to channel 8
 // const PinBlock_t gPinBlocks[]  = {
-//     {MATRIX,  ACTIVE_LOW, 16, 8, 24, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 8}
+//     {DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 24, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 8}
 // };
 
 // Two 8x8 matrix keyboards, 61 actual notes, starting on pins 16 and 32, output to channels 5 and 6
 const PinBlock_t gPinBlocks[]  = {
-    {MATRIX,  ACTIVE_LOW, 16, 8, 24, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5}
-   ,{MATRIX,  ACTIVE_LOW, 32, 8, 40, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6}
+    {DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 24, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5}
+   ,{DIODE_MATRIX,  ACTIVE_LOW, 32, 8, 40, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6}
 };
 
 // 4x8 pedalboard, 32 notes, starting on pin 16, output to channel 5
 // const PinBlock_t gPinBlocks[]  = {
-//     {MATRIX,  ACTIVE_LOW, 16, 4, 20, 8, PEDAL32_MAX_NOTES, PEDAL_LOW_NOTENUM, 5}
+//     {DIODE_MATRIX,  ACTIVE_LOW, 16, 4, 20, 8, PEDAL32_MAX_NOTES, PEDAL_LOW_NOTENUM, 5}
 // };
 
 // A block of 32 parallel inputs starting on pin 16, output to channel 4
@@ -72,6 +72,6 @@ const PinBlock_t gPinBlocks[]  = {
 
 // experimental test of struct modified for multi-contact systems
 const PinBlockMulti_t gPinBlocksMulti[] = {
-    {1, 8, 8, KEYBOARD61_MAX_NOTES, MATRIX, ACTIVE_LOW, KEYBOARD61_LOW_NOTENUM, 5, { {16, 26}, {0,0}, {0,0} }},     // 8X8 single contact
-    {2, 8, 8, KEYBOARD61_MAX_NOTES, MATRIX, ACTIVE_LOW, KEYBOARD61_LOW_NOTENUM, 6, { {16, 26}, {32,40}, {0,0} }}    // 8x8 double contact
+    {1, 8, 8, KEYBOARD61_MAX_NOTES, DIODE_MATRIX, ACTIVE_LOW, KEYBOARD61_LOW_NOTENUM, 5, { {16, 26}, {0,0}, {0,0} }},     // 8X8 single contact
+    {2, 8, 8, KEYBOARD61_MAX_NOTES, DIODE_MATRIX, ACTIVE_LOW, KEYBOARD61_LOW_NOTENUM, 6, { {16, 26}, {32,40}, {0,0} }}    // 8x8 double contact
 };

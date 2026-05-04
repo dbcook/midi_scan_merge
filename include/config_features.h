@@ -15,7 +15,7 @@
 // On Arduino Due and Teensy 4.1 this will be no problem.
 // On a mega you can't go much past 256 and maybe not even that far due to both memory and CPU limitations.
 
-#if defined(ARDUINO_AVR_DUEMILANOVE)
+#if defined(__SAM3X8E__)
 #define MAX_DEBOUNCERS 512
 #elif defined(ARDUINO_AVR_MEGA2560)
 #define MAX_DEBOUNCERS 256

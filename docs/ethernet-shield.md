@@ -2,6 +2,41 @@
 
 Documented as compatible with Arduino Uno and Mega. The shield requires an Arduino that has the ICSP connector.
 
+## MAC Addresses
+
+The Wiznet W5500 Ethernet chip used on the Arduino Ethernet Shield 2 does _not_ have a permanently
+burned-in MAC address, so it must be implanted at boot time by the firmware.
+
+### The MAC Address Sticker on the Shield
+
+All recent Ethernet shields come with a macaddr sticker on the bottom that gives a unique address
+that you can use.  However this address is not programmed into any kind of NV storage on the W5500.
+The manufacturer prefix (the first 3 octets A8 61 0A) is registered to Arduino in Italy.
+You can generally use this address without fear of collision, though a collision is not impossible
+if someone carelessly assigns their device a random macaddr that happens to be identical.
+
+### Locally Administered MAC Addresses
+
+An alternative to relying on addresses assigned by Arduino is to use locally administered addresses.
+These are distinguished by always having bit 1 (2nd least significant bit) set.  This works because
+no assigned manufactureer prefixes have this bit set.  There are at least two cases where you need
+to use locally administered addresses:
+
+* You are using a chip with no persistent MAC and need to assign your own address (i.e. a homebrew board)
+* You are using dynamic MACs for security (Apple does this)
+
+### Implications for Firmware of Nonpersistent MAC Address
+
+The fact that the Ethernet chip doesn't remember its address means that the firmware has to do it.
+Moreover, the firmware for each device has to remember a *different* MAC.  Thus it should be
+stored using NV facilities from EEPROM.h or similar.
+
+### Personal Ethernet Shield MAC List
+
+| Type          | Date New      | MAC Sticker Addr
+|----           |----           |----
+| Eth Shield 2  | Mar 2026      | A8 61 0A AE A8 9A
+
 ## GPIO Pins Summary
 
 ### Pins Used for Standard Arduino Functions
