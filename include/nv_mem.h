@@ -28,7 +28,7 @@ DueFlashStorage DueFlash;   // static instance needed
 #define NV_WRITE_BLOCK(buf, offset, len) eeprom_write_block(buf, offset, len)
 #define NV_UPDATE_BYTE(offset, val) eeprom_update_byte(offset, val)
 #define NV_UPDATE_WORD(offset, val) eeprom_update_word(offset, val)
-#define NV_UPDATE_DWORD(offset, val) eeprom_update_dword(offset, val)
+#define NV_UPDATE_DWORD(offset, val) eeprom_update_dword((uint32_t *)offset, val)
 #define NV_UPDATE_BLOCK(buf, offset, len) eeprom_update_block(buf, offset, len)
 #elif defined(ARDUINO_SAM_DUE)  // Arduino Due
 #define NV_READ_BYTE(offset) DueFlashStorage.read(offset)
@@ -84,6 +84,10 @@ class NvMem {
                 byte newmac[6] = { 0x02, 0xBE, (byte)(rn & 0x000000FF), (byte)((rn & 0x0000FF00) >> 8),
                     (byte)((rn & 0x00FF0000) >> 16), (byte)((rn & 0xFF000000) >> 24) };
                 updateMacAddr(newmac);
+
+                // update signature only at the end
+                uint16_t newsig __attribute__((unused)) = (uint16_t)0xDEADBEEF;
+                NV_UPDATE_DWORD(addr, newsig);
             }
         }
         static void getSerNo(char * buf) {
