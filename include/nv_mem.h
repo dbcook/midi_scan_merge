@@ -2,17 +2,6 @@
 
 #include <Arduino.h>
 
-// EEPROM.h can currently only be used for Arduino Mega 2560 which has 4K built-in EEPROM.
-// Arduino Due does not have built-in flash (SAM processor vs AVR) and so you have to use
-// the Due Flash Storage Library https://github.com/sebnil/DueFlashStorage
-// The Due storage library is also not backward-compatible with the Megas because the latter
-// cannot easily write their regular flash outside the bootloader.
-// The Due library is very primitive and does not even support a multi-byte read
-// *** Fork DueFlashStorage and add
-// ***  word, long, and arbitrary length read
-// ***  word, long writes (requires 4-byte boundaries)
-// ***  update versions of all writes (compare with existing flash before writing)
-
 #if defined(ARDUINO_AVR_MEGA2560)
 #include <EEPROM.h>
 #elif defined(ARDUINO_SAM_DUE)
@@ -83,7 +72,8 @@ class NvMem {
         // therefore safe to call at every boot
         static void initNvMem(bool force = false) {
             bool initialized = true;
-            uint16_t * addr = (uint16_t *)offsetof(nv_mem_layout, signature);
+            uint16_t * addr __attribute__((unused));
+            addr = (uint16_t *)offsetof(nv_mem_layout, signature);
             uint16_t sig;
             sig = NV_READ_WORD(addr);
             if (sig != 0xDEADBEEF) initialized = false;
@@ -97,42 +87,33 @@ class NvMem {
             }
         }
         static void getSerNo(char * buf) {
-            char * nvaddr = (char *)offsetof(nv_mem_layout, serno);
+            char * nvaddr __attribute__((unused)) = (char *)offsetof(nv_mem_layout, serno);
             NV_READ_BLOCK(buf, nvaddr, SERNO_LEN);
         }
 
         static void updateSerNo(const char * buf) {
-            char * nvaddr = (char *)offsetof(nv_mem_layout, serno);
-#if defined(ARDUINO_AVR_MEGA2560)
-            eeprom_update_block(buf, nvaddr, SERNO_LEN);
-#elif defined(ARDUINO_SAM_DUE)
-#endif
+            char * nvaddr __attribute__((unused)) = (char *)offsetof(nv_mem_layout, serno);
+            NV_UPDATE_BLOCK(buf, nvaddr, SERNO_LEN);
         }
 
         static void getMacAddr(byte * buf) {
-            byte * nvaddr = (byte *)offsetof(nv_mem_layout, macaddr);
+            byte * nvaddr __attribute__((unused)) = (byte *)offsetof(nv_mem_layout, macaddr);
             NV_READ_BLOCK(buf, nvaddr, 6);
         }
 
         static void updateMacAddr(byte * buf) {
-            byte * nvaddr = (byte *)offsetof(nv_mem_layout, macaddr);
-#if defined(ARDUINO_AVR_MEGA2560)
-            eeprom_update_block(buf, nvaddr, 6);
-#elif defined(ARDUINO_SAM_DUE)
-#endif
+            byte * nvaddr __attribute__((unused)) = (byte *)offsetof(nv_mem_layout, macaddr);
+            NV_UPDATE_BLOCK(buf, nvaddr, 6);
         }
 
         static uint32_t getDefaultDebounceMsec() {
-            uint32_t * nvaddr = (uint32_t *)offsetof(nv_mem_layout, default_debounce_msec);
+            uint32_t * nvaddr __attribute__((unused)) = (uint32_t *)offsetof(nv_mem_layout, default_debounce_msec);
             return NV_READ_DWORD(nvaddr);
         }
 
         static void updateDefaultDebounceMsec(uint32_t msec) {
-            uint32_t * nvaddr = (uint32_t *)offsetof(nv_mem_layout, default_debounce_msec);
-#if defined(ARDUINO_AVR_MEGA2560)
-            eeprom_update_dword(nvaddr, msec);
-#elif defined(ARDUINO_SAM_DUE)
-#endif
+            uint32_t * nvaddr __attribute__((unused)) = (uint32_t *)offsetof(nv_mem_layout, default_debounce_msec);
+            NV_UPDATE_DWORD(nvaddr, msec);
         }
 
 };

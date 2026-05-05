@@ -15,7 +15,16 @@ their capacity is useful to control cost and system interconnects.
 
 ## State of the Project
 
-A prototype scanner was implemented that seemed to run quite quickly on the Mega 2560.  However the
+The Ethernet Shield 2 is installed on the test rig and intial Ethernet library integration is
+largely done. USB MIDI cannot be tested on a Mega 2560 since it does not support a full USB host. That
+will require an Arduino Due or Teensy 4.1.  A Due is on order and I have a couple of Teensy 4.1
+units.  Current work is focused on getting NV param storage running cross-architecture on both
+the Mega 2560 and the Due (occasionally referred to by its full name of Duemilanove).
+
+Arduino Due uses a different architecture (SAM vs AVR) so there is a separate config for it
+in `platformio.ini`.  Right now both configs compile but proper operation is not confirmed.
+
+Originally a prototype was implemented that seemed to run quite quickly on the Mega 2560.  However the
 straightforward code design ended up using 35-40% too much memory and would only have supported two
 8x8 and one 8x4 diode matrix groups.
 
@@ -32,12 +41,39 @@ excessive amount of CPU, a third version has been implemented that uses the digi
 libary to drastically reduce the IO overhead and give a scan time per input of about 6 usec
 on the Mega 2560.
 
-The Ethernet Shield 2 is installed on the test rig and intial library integration is in
-progress. USB MIDI cannot be tested on a Mega 2560 since it does not support a full USB host. That
-will require an Arduino Due or Teensy 4.1.
+Since the 3rd prototype, the Ethernet libraries have been integrated up to the point where
+session establishment and note emitting code is in place.  Functional tests are pending.
 
-Arduino Due uses a different architecture (SAM vs AVR) so there is a separate config for it
-in `platformio.ini`.
+### Current Hotspot
+
+There is a significant issue with getting portable NV param storage.  The Mega and Due use
+processors with different architecture and features.  Notably the Mega has 4 KB of onboard
+EEPROM while the Due has none.  It is possible to write flash pages at runtime on the Due
+but not on the Mega.
+
+EEPROM.h param storage has been the Arduino standard from the early days, but it can only
+be used for Arduino Mega 2560 with its 4K built-in EEPROM.
+For Arduino Due there is a Due Flash Storage Library https://github.com/sebnil/DueFlashStorage.
+Unfortunately the Due Flash Storage library is very primitive and does not even support a multi-byte read.
+It also has not been updated in a long time, but is widely reported to work.
+
+#### NV Params Options
+
+__Option 1__ Store all params on the SD card on the Ethernet shield
+
+Pros: hopefully no arch dependent code, possible to use yaml or ini format, can configure externally with a PC
+Cons: not all rigs will have the eth shield, minor cost for SD cards
+
+__Option 2__ Fork DueFlashStorage and bring it up to parity with EEPROM.h by adding
+* word, long, and arbitrary length read
+* word and long writes (note that any multi-byte write must be on 4-byte boundaries)
+* update versions of all writes (compare with existing flash before writing)
+
+Pros: no eth shield needed
+
+Cons: messy work to wrapperize 2 disparate libs and enhance one of them a lot, byte alignment
+
+
 
 ## Contributing
 
