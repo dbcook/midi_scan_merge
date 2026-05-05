@@ -19,12 +19,12 @@ A prototype scanner was implemented that seemed to run quite quickly on the Mega
 straightforward code design ended up using 35-40% too much memory and would only have supported two
 8x8 and one 8x4 diode matrix groups.
 
-A second version was built that reduces RAM usage by enough to get
+A second version was built that reduced RAM usage by enough to get
 the data for a full slate of four 8x8 diode matrix arrays into about 4KB of RAM.  The time per
-input scanned was about 9-12 usec depending on circumstances.  This scanner has passed several
+input scanned was about 9-12 usec depending on circumstances.  This version passed several
 logging tests to prove that the pin block definitions are being read and scanned properly.
 Several matrix and block scenarios appear to run correctly.  Testing with actual input
-switches is about to begin.  Thus far all of the debugging has used a generic serial MIDI
+switches is pending.  Thus far all of the debugging has used a generic serial MIDI
 shield with the hardware hacked to attach it to the Mega 2560 SER3 port.
 
 After discovery that the stock Arduino digital IO library routines were eating up an
@@ -32,9 +32,20 @@ excessive amount of CPU, a third version has been implemented that uses the digi
 libary to drastically reduce the IO overhead and give a scan time per input of about 6 usec
 on the Mega 2560.
 
-The Ethernet Shield 2 is installed on the test rig but library integration has not begun.
-USB MIDI cannot be tested on a Mega 2560 since it does not support a full USB host. That
+The Ethernet Shield 2 is installed on the test rig and intial library integration is in
+progress. USB MIDI cannot be tested on a Mega 2560 since it does not support a full USB host. That
 will require an Arduino Due or Teensy 4.1.
+
+Arduino Due uses a different architecture (SAM vs AVR) so there is a separate config for it
+in `platformio.ini`.
+
+## Contributing
+
+*Bug reports* Please use GitHub issues in the normal way.
+
+*Fixes and enhancements* Plase follow the conventional open source process:  fork this repo,
+create a branch with your changes on it, and submit a pull request (PR) for that branch. Be sure
+to generally follow the conventions used in this project; nonconforming PRs will not be accepted.
 
 ## Features Summary
 
@@ -51,14 +62,19 @@ will require an Arduino Due or Teensy 4.1.
 
 ## Future Features
 
-* Programmable pinBlock parameters via SYSEX messages (with readback)
+* Programmable pinBlock parameters (including MIDI output channels) via SYSEX messages with readback
 * Velocity sense (dual contact) scanning
 * Aftertouch (triple contact) scanning
 * Support IO extenders
-* MIDI decoder (receive messages on a channel and activate outputs)
-* General purpose carrier and interconnect board for Teensy 4.1
-* Diode matrix boards for parallel keyboards
-* LED driver for MIDI decoder
+* MIDI decoder - consume messages on one or more channels and activate outputs
+    * LEDs
+    * Multi-digit displays (e.g. sequence frame number)
+    * Solenoid drivers (e.g. for electromechanical organ stops)
+* Teensy support
+* Hardware
+    * General purpose carrier and interconnect board for Teensy 4.1
+    * Diode matrix boards for parallel keyboards
+    * LED driver (matrix based) for MIDI decoder
 
 ## Target Processors
 
@@ -83,12 +99,29 @@ drop support for the Mega 2560 in future releases.
 The Leonardo offers USB host capability and is half the cost of the Due, but has only 1/3 the IO pins
 and a really tiny amount of RAM, and is 5x slower.  At most it can handle one 8x8 keyboard matrix.
 
+### Arduino Architecture Differences
+
+The Mega 2560 uses the Atmel AVR architecture, while the Due uses a SAM chip (SAM3X8E).  The Arduino
+boards for these have quite similar capabilities, but there are differences that have to be taken into account:
+
+* The Mega 2560 AVR processor has 4K of built-in EEPROM, while the Due does not, and uses a page of flash for NV
+storage instead.  This means that different NV libraries must be used, and the APIS, while similar,
+are not completely compatible.
+* The AVR will accept 5V external inputs, while the Due can only take 3.3V.  This doesn't matter
+for typical key/pedal scanners because the contact systems are completely passive, but you have
+to be careful about hooking up externally sourced active-high inputs.
+* The Mega 2560 has 16 of its 69 IO pins configurable as analog, while the Due only has 12 out of 69.
+This is because the Due provides different aux functionality on pins 50-53, including two DACs.
+* The `MemoryFree` library used to measure memory consumption only works on the AVR architecture.
+For SAM the heap boundary symbols are different.  For now this is of no consequence since it doesn't
+look like memory will be an issue on the Due. There is [code suitable for SAM here]()
+
 ## Prerequisites and Building
 
 To configure, build and load this software into an Arduino, you need vscode with the PlatformIO plugin.
 
 On Apple Silicon Macs, you need to install rosetta 2 to allow emulation of the x86 compiler used
-for the older Arduinos (Mega/Uno/Nano, maybe Due).
+for the older AVR based Arduinos (Mega/Uno/Nano).
 
 ```
 softwareupdate --install-rosetta
@@ -98,10 +131,8 @@ Due to the need to save RAM and keep as much data in flash as possible, you have
 configuration in the code to specify your diode matrix and parallel input configuration. Support
 is provided to specify a separate MIDI output channel and MIDI note base for each diode matrix group.
 
-There is enough memory and maybe (exact results not determined yet) enough CPU to scan and debounce
-180-256 inputs in up to four 8x8 diode matrix groups using even the slowest 16 MHz Arduinos.
-Nearly all the RAM is statically allocated to avoid problems with unpredictable heap usage.
-The build output in the terminal will tell you how much of the RAM and flash are used.
+
+## Console Output
 
 The firmware will spit out useful periodic messages on the primary serial port.  This port is shared
 with the bootloader, so if you add a MIDI serial shield you should modify it to use a different hardware
@@ -165,18 +196,32 @@ The last note in a big chord from the end of the chain could see 20-25 msec of l
 
 ## Constraints
 
+Overall there is enough memory and enough CPU to scan and debounce 192-448 inputs in up to seven 8x8
+diode matrix groups, depending on the speed and memory of your MCU. Even the slow 16 MHz
+processors should be able to do 3 8x8x matrix groups.  On the Mega number of matrix inputs
+that can be scanned is both RAM and CPU limited, and not IO pin limited.
+
+If parallel inputs are used, you can only scan 64 total inputs, so memory and speed will
+not be a problem on any Arduino or Teensy MCU.  In this case you are completely pin limited
+and an IO expander could be very helpful.
+
 ### Memory
 
-The only processor of interest that presents memory challenges is the Arduino Mega 2560, which
-has only 8KB of RAM.  The debouncers as currently implemented use 14 bytes of memory each, so 256
-of them use 3.6K of RAM.  With the Ethernet and MIDI libraries there is very little
-left over - even keeping a list of pointers to the debouncers costs 1KB, so the configuration code where
-you define the diode matrix and parallel inputs has to be entirely flash-based and use computed indexes to
-the debouncer objects.
+Nearly all RAM is statically allocated to avoid problems with unpredictable heap usage.
+The build output in the terminal will tell you how much of the static RAM and flash are used.
+
+Both the Leonardo (2.5 KB) and Mega 2560 (8 KB) have plenty of flash but very limited RAM.
+In an attempt to make the Mega reasonably useful, some code complexity has been undertaken to not unpack
+the pin block definitions into RAM, and to use index based access of
+debouncer memory structures from a statically defined array.  The latter by itself saves 1KB
+of RAM for 256 inputs.
+
+The debouncers as currently implemented use 14 bytes of memory each, so 256
+of them use 3.6K of RAM.
 
 Given that the Arduino Due is virtually identical to the Mega 2560 (even in cost), I strongly
 suggest that you should use the Due instead of the Mega 2560, especially as I may drop support for the
-Mega 2560 to get rid of some of the code malarkey that was necessary to make the Mega 2560 usable.
+Mega 2560 to get rid of some of the code that was necessary to make the Mega 2560 usable.
 
 ### CPU
 
@@ -186,14 +231,40 @@ This means that the scan time for 3 61-note 8x8 matrix blocks (183 inputs) shoul
 
 The Arduino Due is 5x faster and the Teensy 4.1 is 50x faster, so CPU considerations for these are currently nil.
 
-### IO Pins
+### IO Capacity
 
-With the Ethernet Shield 2 attached, the Mega 2560 and Due have enough free IO pins to handle 4 full 8x8 diode matrix keyboards,
-or 3 8x8's plus 12 (Due) or 16 (Mega) analog inputs such as expression pedals, rotary encoders and sliders/drawbars.
+Both the Mega and Due have 69 total IO pins, all of which can be programmed as digital inputs or outputs.
+Out of the set of 69 pins, various subsets can be programmed for other functions such as 
+analog input, serial ports, PWM output, and some specialty functions.  Most IO shields
+will consume a few pins.  On a Mega or Due with an Ethernet Shield 2 installed, the
+following 5 pins are not usable, leaving exactly 64 usable digital IO pins:
+
+* Pins 0 and 1:  the base serial port used by the bootloader
+* Pins 4 and 10: used as chip selects by the Ethernet shield
+* Pin 13: the standard Arduino LED output
+
+Thus With the Ethernet shield attached, on the Mega 2560 and Due you have exactly 64 usable IO pins,
+of which 16 (Mega) or 12 (Due) are analog-capable.
+This will physically handle 4 full 8x8 diode matrix keyboards (without using shared scan lines).
+or up to seven 8x8's if the same scan lines are used for each matrix.  Using one or more of
+the analog-capable pins for analog inputs OR using any digital pins for parallel inputs will
+reduce by one the number of 8x8 diode matrix groups that can be supported.
 
 If a MIDI serial shield is used and you do not want to have to flip PROG/RUN switches everytime you load code,
-you have to give up two IO pins and you cannot support four 8x8's if an Ethernet shield is also present.
+you have to give up two more IO pins, leaving only 63 usable if an Ethernet shield is also present.
+This is a good reason not to have a serial MIDI shield attached unless it is actually used.
 See [docs/midi-shields.md](docs/midi-shields.md) for specifics on wiring serial MIDI shields.
+
+The largest number of 8x8 diode matrix groups that can be scanned with 64 pins is seven,
+provided that common scan outputs are used for all of the matrix groups.  Each independent
+set of scan lines consumes 8 pins.  Thus if you use independent scan lines for each matrix,
+you can only do 3 8x8 groups.
+
+IO expanders can possibly be used, though most of them are I2C based which has
+speed limitations.  MCP23017 based expanders can have the wire rate set as high as 1.7 MHz,
+but even that is too slow to support high IO bit counts.  SPI based expanders can clock
+at 10MHz, which is considerably better.
+
 
 ### IO Efficiency
 
@@ -226,29 +297,30 @@ would be very hard to maintain because the loops would have to be completely unr
 
 ### Velocity and Aftertouch Sensing
 
-Velocity sensing for keyboards (not yet implemented) will double the number of contacts and is expected to
-double or nearly double the memory consumption of each debouncer.  It will also slow down the scanning somewhat
-due to increased complexity of the algorithm.  However I think it should be possible to do velocity sensing
-on a 61-note keyboard with a single Mega 2560 at better than 1 KHz.
+Velocity sensing for keyboards (not yet implemented) will double the number of contacts and will
+double or nearly double the memory consumption of each debouncer.  It will also slow down the scanning slightly
+due to increased complexity of the algorithm while a key has at least one contact closed.
+However I think it should be possible to do velocity sensing on a 61-note keyboard with a single
+Mega 2560 at better than 1 KHz.
 
-Aftertouch sensing, seen on theater organs and synthesizers, involves 3 contacts per key.
+Aftertouch sensing, used on theater organs and synthesizers, involves 3 contacts per key.
 Implementing it just means stacking a 3rd layer of debounce atop the velocity sensing logic.
 Because of the number of IO pins needed, it will consume 3 8x8 matrix slots.  Thus without
-an IO extender you will only be able to scan one such keyboard per processor.
+sharing scan lines or an IO extender you will only be able to scan one such keyboard per Arduino.
 
 ## MIDI DIN-5 Serial Cables
 
-This reference information in case you have to work with old school serial MIDI.
+This reference information is in case you have to work with old school serial MIDI.
 
 __MIDI DIN-5 connector pinout__
 
-|PIN    |  MIDI IN        | MIDI OUT         | MIDI THRU
-----    |-----            |------            |-----
-1       | NC or GND       | NC or GND        | NC or GND
-2       | SHIELD          | SHIELD           | SHIELD
-3       | NC or +V        | NC or +V         | NC or +V
-4       | MIDI source IN  | MIDI source OUT  | MIDI source OUT    (+5V)
-5       | MIDI sink OUT   | MIDI sink IN     | MIDI sink IN
+|PIN    |  MIDI IN                 | MIDI OUT               | MIDI THRU
+----    |-----                     |------                  |-----
+1       | NC or GND                | NC or GND              | NC or GND
+2       | SHIELD                   | SHIELD                 | SHIELD
+3       | NC or +V                 | NC or +V               | NC or +V
+4       | MIDI source IN           | MIDI source (pullup)   | MIDI source (pullup)
+5       | MIDI sink (opto input)   | MIDI sink (driven)     | MIDI sink (driven)
 
 The actively driven line (driven by MIDI OUT) is always the MIDI current sink (Pin 5).
 This line is driven active low by the MIDI OUT side.
