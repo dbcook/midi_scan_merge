@@ -15,15 +15,22 @@ their capacity is useful to control cost and system interconnects.
 
 ## State of the Project
 
+Since the 3rd prototype, the Ethernet libraries have been integrated up to the point where
+session establishment and note emitting code is in place.  We successfully get DHCP with sane
+results but crash later after it starts scanning.  This may have to do with serial MIDI
+being completely turned off for these tests, which is formerly uncharted territory.
+
 The Ethernet Shield 2 is installed on the test rig and intial Ethernet library integration is
 largely done. USB MIDI cannot be tested on a Mega 2560 since it does not support a full USB host. That
 will require an Arduino Due or Teensy 4.1.  A Due is on order and I have a couple of Teensy 4.1
-units.  Current work is focused on getting NV param storage running cross-architecture on both
-the Mega 2560 and the Due (occasionally referred to by its full name of Duemilanove).
+units, though not with Ethernet jacks.  Current work is focused on getting AppleMIDI sessions
+running and discoverable by upstream software.  We are definitely communicating successfully over
+Ethernet as indicated by getting a proper DHCP address.
 
 Arduino Due uses a different architecture (SAM vs AVR) so there is a separate config for it
 in `platformio.ini`.  Right now both configs compile but proper operation is not confirmed.
 
+### Quick History
 Originally a prototype was implemented that seemed to run quite quickly on the Mega 2560.  However the
 straightforward code design ended up using 35-40% too much memory and would only have supported two
 8x8 and one 8x4 diode matrix groups.
@@ -40,9 +47,6 @@ After discovery that the stock Arduino digital IO library routines were eating u
 excessive amount of CPU, a third version has been implemented that uses the digitalWriteFast
 libary to drastically reduce the IO overhead and give a scan time per input of about 6 usec
 on the Mega 2560.
-
-Since the 3rd prototype, the Ethernet libraries have been integrated up to the point where
-session establishment and note emitting code is in place.  Functional tests are pending.
 
 ### Current Hotspot
 

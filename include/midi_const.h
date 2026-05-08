@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include <MIDI.h>
 #include <Ethernet3.h>
-#include <AppleMIDI.h>
+//#include <AppleMIDI.h>
 // Various MIDI related constants that don't appear in the library MIDI.h
 
 #define MIDI_VELOCITY_MAX 0x7F

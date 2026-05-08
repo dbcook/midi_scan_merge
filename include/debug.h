@@ -17,7 +17,7 @@ EXTERN HardwareSerial *Console
 ;
 
 #define Console_print(...) Console->print(__VA_ARGS__)
-#define Console_println(...) Console->println(__VA_ARGS__)
+#define Console_println(...) Console->println(__VA_ARGS__); Console->flush()
 #define Console_flush Console->flush()
 #else
 #define Console_print(...)

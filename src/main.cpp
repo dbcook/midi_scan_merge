@@ -7,12 +7,7 @@
 // MemoryFree library is arduino specific
 #endif
 #include <MIDI.h>
-#include <AppleMIDI.h>
 
-// USE_EXT_CALLBACKS is necessary to catch any MIDI events
-// Since it only takes about 150 bytes of flash we turn it on by default.
-#define USE_EXT_CALLBACKS
-#include <AppleMIDI.h>
 
 #define GEN_GLOBALS
 #include "glob_gen.h"
@@ -194,13 +189,15 @@ void startMidi()
     midi1.begin(MIDI_CHANNEL_OMNI);
 #endif
 
+
 #if MIDI_MERGE_SERIAL_PORTS > 2
     midi2.begin(MIDI_CHANNEL_OMNI);
 #endif
 #endif // MERGE_SERIAL_INPUTS
 
 #if ETHERNET_MIDI_CONNECT
-    AM_DBG_SETUP(consoleBaudRate);       // *** may collide with our debug setup?
+    // sadly AM_DBG is a recursive buggy thing
+    //AM_DBG_SETUP(consoleBaudRate);       // Inits (var) SerialMon at the given baud
 
     // Ethernet interface setup before AppleMidi    
     Ethernet.init(4);   // set sockets to 4, giving larger 4k buffers
@@ -209,7 +206,7 @@ void startMidi()
     // make "hostname-XXxxXXxxXXxx" with 6 octets of mac addr so max 78 chars + the null
     // This name will be unique among all official Arduino Ethernet shields ever made with baked-in mac addrs
     char buf[79];
-    snprintf(buf, sizeof(buf), ETH_HOSTNAME_PREFIX "-%2X%2X%2X%2X%2X%2X",
+    snprintf(buf, sizeof(buf), ETH_HOSTNAME_PREFIX "-%02X%02X%02X%02X%02X%02X",
         gEthernetMac[0], gEthernetMac[1], gEthernetMac[2],
         gEthernetMac[3], gEthernetMac[4], gEthernetMac[5]);
     Ethernet.setHostname(buf);
@@ -218,15 +215,14 @@ void startMidi()
         Console_println(F("Failed DHCP, retrying"));
         delay(500);
     }
-    AM_DBG(F("DHCP Success.  Host params:"));
-    AM_DBG(F(" hostname: "), buf);
-    AM_DBG(F(" IP      : "), Ethernet.localIP());
+    Console_println(F("DHCP Success.  Host params:"));
+    Console_print(F(" hostname: "));
+    Console_println(buf);
+    Console_print(F(" IP      : "));
+    Console_println(Ethernet.localIP());
 
     // make session name globally (and I do mean globally) unique by changing the default prefix and appending the full macaddr
     // I don't know if we will want to provide multiple sessions; if so they will need to be uniqified with a session counter.
-    snprintf(buf, sizeof(buf), "Apple-dbcproc-%2X%2X%2X%2X%2X%2X",
-        gEthernetMac[0], gEthernetMac[1], gEthernetMac[2], 
-        gEthernetMac[3], gEthernetMac[4], gEthernetMac[5]);
 
     // The following create a MIDI interface object called "ETHMIDI" which has an AppleMidi session object as its transport.
     // The AppleMidi session runs on the default port 5004, with a session name that we specify, running EthernetUDP
@@ -243,31 +239,46 @@ void startMidi()
     // We override the default basename of "MIDI" so that we can make unique across all devices, which aids
     // discovery by the client software.
     //
+
+    Console_println(F("AppleMIDI UDP session starting.  Params:"));
+    snprintf(buf, sizeof(buf), "%02X%02X%02X%02X%02X%02X",
+        gEthernetMac[0], gEthernetMac[1], gEthernetMac[2],
+        gEthernetMac[3], gEthernetMac[4], gEthernetMac[5]);
+    Console_print(F(" Mac Addr: "));
+    Console_println(buf);
+    delay(500);
+
+    // due to how this macro works, the session name (arg 3) has to be a compile time constant
+    // possibly clobbering memory in here
+    APPLEMIDI_CREATE_INSTANCE(EthernetUDP, MIDI, "Ethernet_MIDI", DEFAULT_CONTROL_PORT);
+
+    // I think we're busted after this.  We get 65 nulls spit out and it crashes back through init, bad hostname ptr?
+    // Serial buffer overrun?  Adding flush after every Console_println made things much better
+    //␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀
+
+    Console_print(F(" Name: "));
+    Console_println(AppleMIDI.getName());
+    Console_print(F(" Port: "));
+    Console_println(AppleMIDI.getPort());
     
-    APPLEMIDI_CREATE_INSTANCE(EthernetUDP, ETHMIDI, buf, DEFAULT_CONTROL_PORT);
-
-    AM_DBG(F("AppleMIDI UDP session started.  Params:"));
-    AM_DBG(F(" Name: "), AppleMIDI.getName());
-    AM_DBG(F(" Port: "), AppleMIDI.getPort());
-
     // capture the interface in MIDI lib land
     //gMidiEthOutputInterface = &ETHMIDI;
     gMidiEthOutputInterface = &ETH_MIDI_BASENAME;
     gMidiEthOutputInterface->begin(ETH_MIDI_LISTEN_CHAN);
 
     // capture the AppleMidi instance needed to manipulate callbacks etc.
-    gAppleMidiInstance = &AppleETHMIDI;
+    gAppleMidiInstance = &AppleMIDI;
     
     // Set up callbacks to monitor AppleMidi connections
 
     // connect/disconnect are the standard callbacks available without USE_EXT_CALLBACKS
     gAppleMidiInstance->setHandleConnected([](const APPLEMIDI_NAMESPACE::ssrc_t & ssrc, const char* name) {
         gEthConnections++;
-        AM_DBG(F("Eth connect "), ssrc, name, F(" NSessions "), gEthConnections);
+        AM_DBG("Eth connect ", ssrc, name, " NSessions ", gEthConnections);
     });
     gAppleMidiInstance->setHandleDisconnected([](const APPLEMIDI_NAMESPACE::ssrc_t & ssrc) {
         gEthConnections--;
-        AM_DBG(F("Eth disconnect "), ssrc, F(" NSessions "), gEthConnections);
+        AM_DBG("Eth disconnect ", ssrc, " NSessions ", gEthConnections);
     });
 
     // for scanner/encoder functions, the main scanner routine will just need to call
@@ -278,22 +289,22 @@ void startMidi()
     // for decoder functions we'll need to add callbacks for the messages we accept
 #if ETHERNET_MIDI_DECODE_INPUT
     gMidiEthOutputInterface->setHandleNoteOn([](byte channel, byte note, byte velocity) {
-        AM_DBG(F("NoteOn"), channel, note, velocity);
+        AM_DBG("NoteOn", channel, note, velocity);
     });
     gMidiEthOutputInterface->setHandleNoteOff([](byte channel, byte note, byte velocity) {
-        AM_DBG(F("NoteOff"), channel, note, velocity);
+        AM_DBG("NoteOff", channel, note, velocity);
     });
     gMidiEthOutputInterface->setHandleControlChange([](Channel channel, byte v1, byte v2) {
-        AM_DBG(F("ControlChange"), channel, v1, v2);
+        AM_DBG("ControlChange", channel, v1, v2);
     });
 #endif
 #if 0
     // The remaining basic channel message callbacks are these:
     MIDI.setHandleProgramChange([](Channel channel, byte v1) {
-        AM_DBG(F("ProgramChange"), channel, v1);
+        AM_DBG("ProgramChange", channel, v1);
     });
     MIDI.setHandlePitchBend([](Channel channel, int v1) {
-        AM_DBG(F("PitchBend"), channel, v1);
+        AM_DBG("PitchBend"Í, channel, v1);
     });
 #endif
 
@@ -324,7 +335,8 @@ void setup()
 {
     pinMode(LED_BUILTIN, OUTPUT);
 
-#if USE_DEBUG_PRINT
+    // Don't do this if AM_DBG is setup from AppleMidi
+#if USE_DEBUG_PRINT && !defined(SerialMon)
     Console->begin(consoleBaudRate);
 #endif
 

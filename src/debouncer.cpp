@@ -1,10 +1,9 @@
 #include <Arduino.h>
 #include <MIDI.h>
-#include <AppleMIDI.h>
 
 #include "glob_gen.h"
-#include "config_features.h"
 #include "data.h"
+#include "config_features.h"
 #include "debouncer.h"
 
 // Debouncer action routines

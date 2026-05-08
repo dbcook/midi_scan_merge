@@ -32,7 +32,7 @@
 // *** working on allowing serial output without reading any input ports
 // all combinations of SERIAL_MIDI_INPUT and SERIAL_MIDI_OUTPUT are valid
 
-#define SERIAL_MIDI_INPUT true
+#define SERIAL_MIDI_INPUT false
 #define SERIAL_MIDI_OUTPUT false
 
 // Configure serial input port count and merging
@@ -145,7 +145,7 @@ EXTERN const uint8_t midiRemappedChans[NUM_SERIAL_PORTS]
 
 // This transport instance names generated from this have to be kept unique vs the serial and USB transport names
 // It MUST resolve to a compile-time literal, not a string constant
-#define ETH_MIDI_BASENAME ETHMIDI
+#define ETH_MIDI_BASENAME MIDI
 #define ETH_APPLE_BASENAME AppleETHMIDI
 
 // MIDI channel the Ethernet port listens on for decoding and commands

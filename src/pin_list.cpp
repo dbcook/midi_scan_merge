@@ -1,8 +1,9 @@
 #include <Arduino.h>
 
 #include "glob_gen.h"
-#include "config_features.h"
 #include "data.h"
+
+#include "config_features.h"
 #include "pin_list.h"
 
 
