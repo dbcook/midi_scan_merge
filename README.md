@@ -4,7 +4,9 @@ This PlatformIO based project targets Arduino family processors with large digit
 and is aimed at exploiting the number of IO pins in order to scan up to four 8x8 diode matrix groups
 representing up to 256 discrete contacts.
 
-We perform high precision switch debouncing and emit MIDI NoteOn and NoteOff messages accordingly.
+We perform high precision switch debouncing and emit MIDI NoteOn and NoteOff messages accordingly
+over various transports (serial, Ethernet, USB).  Once contact closure inputs are working, the
+next phase will be to scan analog inputs with configurable deadband and low pass filtering.
 
 The system context for this is to support musical instruments such as pipe organs - actual or virtual - that
 may have a large number of inputs:  four or more 61-note keyboards, a 32-note pedalboard, up to 100 momentary-contact
