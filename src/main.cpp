@@ -314,6 +314,8 @@ void startMidi()
 
 
 void configurePins() {
+    pinMode(LED_BUILTIN, OUTPUT);
+    
     for (int i = 0; i < nPinBlocks; i++) {
         const PinBlock_t * pb = &gPinBlocks[i];
 
@@ -333,18 +335,17 @@ void configurePins() {
 
 void setup() 
 {
-    pinMode(LED_BUILTIN, OUTPUT);
 
     // Don't do this if AM_DBG is setup from AppleMidi
 #if USE_DEBUG_PRINT && !defined(SerialMon)
     Console->begin(consoleBaudRate);
 #endif
 
+    configurePins();
+    
     initDebouncers();
     initDebouncerBases();
 
-    configurePins();
-    
     startMidi();
 }
 
@@ -378,9 +379,9 @@ void loop()
     }
 
     //test_fastread();
-    // byte buf[10];
-    //test_diodeMatrix_8x8(buf);
-    scanPinBlocks();
+    byte buf[10];
+    test_diodeMatrix_8x8(buf);
+    //scanPinBlocks();
 }
 
 
