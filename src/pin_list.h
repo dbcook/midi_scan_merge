@@ -40,12 +40,12 @@ typedef struct PbPinInfo{
 } PbPinInfo_t;
 
 typedef struct PinBlockMultContact {
+    bool useSelect;                 // all sub-blocks in the group must have same layout (parallel or matrix)
+    bool activeLow;                 // all sub-blocks must have same input polarity
     int numContacts;                // number of contacts per key: 1 = regular, 2 = velocity, 3 = aftertouch
     int numSelectPins;              // num of select pins, ignored if useSelect == false
     int numReadPins;                // num of read pins
     int numCtrls;                   // number of notes must be the same in all sub-blocks
-    bool useSelect;                 // all sub-blocks in the group must have same layout (parallel or matrix)
-    bool activeLow;                 // all sub-blocks must have same input polarity
     midi::DataByte baseMidiNoteNum; // start of contiguous MIDI note num range
     midi::Channel midiOutChan;      // MIDI output channel for the block
     PbPinInfo_t pbPinInfo[MAX_CONTACTS];
@@ -58,6 +58,7 @@ typedef struct PinBlockMultContact {
 
 
 const int nPinBlocks = sizeof(gPinBlocks) / sizeof(PinBlock_t);
+const int nPinBlocksMulti = sizeof(gPinBlocksMulti) / sizeof(PinBlockMulti_t);
 
 int calcPinBlockSize(int pbIndx);
 int calcDebouncerBase(int pbIndx);

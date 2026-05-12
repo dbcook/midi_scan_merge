@@ -50,12 +50,12 @@ void test_fastread() {
 
 void test_diodeMatrix_8x8(byte *buf) {
     for (int colPin = 20; colPin < 28; colPin++) {
-        fastwrite(colPin, LOW);
+        //fastwrite(colPin, LOW);  // gotta config the pins
         int indx = 0;
         for (int readPin = 28; readPin < 36; readPin++) {
             buf[indx++] = fastread(readPin);
         }
-        fastwrite(colPin, HIGH);
+        //fastwrite(colPin, HIGH);
     }
 }
 
@@ -90,13 +90,22 @@ void scanPinBlocks() {
                 // scan the read pins
                 for (int readPin = pb->readBasePin; (readPin < rlim) && (noteNum < noteLim); readPin++) {
                     //int inp = digitalRead(rowPin);
-                    int inp = fastread(readPin);
+                    uint8_t inp = fastread(readPin);
 
                     //gDebouncers[dbIndx++].stateSampleDummy(pb->activeLow ? !inp : inp, noteNum++, pb->midiOutChan); // logs notes and chans sequence
                     //gDebouncers[dbIndx++].stateSample(true, noteNum++, pb->midiOutChan);  // causes initial burst of noteOn for all notes
                     //gDebouncers[dbIndx++].stateSample(false, noteNum++, pb->midiOutChan);  // make sure it never sees anything
 
-                    gDebouncers[dbIndx++].stateSample(pb->activeLow ? !inp : inp, noteNum++, pb->midiOutChan);
+                    // machinations to eliminate args to the debouncer - gave a considerable speedup
+                    bool istate = (pb->activeLow)? !inp : inp;
+                    if (istate)
+                        gDebouncers[dbIndx++].stateSampleActive();
+                    else
+                        gDebouncers[dbIndx++].stateSampleInactive();
+                    noteNum++;
+
+
+                    // gDebouncers[dbIndx++].stateSample(pb->activeLow ? !inp : inp, noteNum++, pb->midiOutChan);
                 }
                 //digitalWrite(colPin, pb->activeLow ? HIGH : LOW);  // deactivate the select pin
                 fastwrite(selPin, pb->activeLow ? HIGH : LOW);  // deactivate the select pin
@@ -315,7 +324,7 @@ void startMidi()
 
 void configurePins() {
     pinMode(LED_BUILTIN, OUTPUT);
-    
+
     for (int i = 0; i < nPinBlocks; i++) {
         const PinBlock_t * pb = &gPinBlocks[i];
 
@@ -329,7 +338,30 @@ void configurePins() {
             pinMode(readPin, pb->activeLow ? INPUT_PULLUP : INPUT);
         }
     }
-
+    for (int i = 0; i < nPinBlocksMulti; i++) {
+        const PinBlockMulti_t * pb = &gPinBlocksMulti[i];
+        int nc = pb->numContacts;
+        if (pb->useSelect) {
+            for (int j = 0; j < nc; j++) {
+                const PbPinInfo_t * pbi = &(pb->pbPinInfo[j]);
+                for (uint8_t selPin = pbi->selectBasePin; selPin < pbi->selectBasePin + pb->numSelectPins; selPin++) {
+                    pinMode(selPin, OUTPUT);
+                    digitalWrite(selPin, pb->activeLow ? HIGH : LOW);
+                }
+                for (uint8_t readPin = pbi->readBasePin; readPin < pbi->readBasePin + pb->numReadPins; readPin++) {
+                    pinMode(readPin, pb->activeLow ? INPUT_PULLUP : INPUT);
+                }
+            }
+        }
+        else {
+            for (int j = 0; j < nc; j++) {
+                const PbPinInfo_t * pbi = &(pb->pbPinInfo[j]);
+                for (uint8_t readPin = pbi->readBasePin; readPin < pbi->readBasePin + pb->numReadPins; readPin++) {
+                    pinMode(readPin, pb->activeLow ? INPUT_PULLUP : INPUT);
+                }
+            }
+        }
+    }
 }
 
 
@@ -367,7 +399,8 @@ void loop()
     //    single block of 32 parallels                           3.48 KHz (287 usec = 8.97 usec per input)
     loopCount++;
     unsigned long curMillis = millis();
-    if (curMillis - lastMillis > 1000) {
+    if (lastMillis == 0) lastMillis = millis();
+    if ((curMillis - lastMillis) > 1000) {
         lastMillis = curMillis;
         digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
         Console_print(F("rate: ")); Console_println(loopCount);
@@ -379,9 +412,9 @@ void loop()
     }
 
     //test_fastread();
-    byte buf[10];
-    test_diodeMatrix_8x8(buf);
-    //scanPinBlocks();
+    // byte buf[10];
+    // test_diodeMatrix_8x8(buf);
+    scanPinBlocks();
 }
 
 

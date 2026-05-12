@@ -6,10 +6,10 @@
 #include "config_features.h"
 #include "pin_list.h"
 
-
 int calcPinBlockSize(int pbIndx) {
     const PinBlock_t *pb = &(gPinBlocks[pbIndx]);
-    return (pb->useSelect ? pb->numReadPins * pb->numSelectPins : pb->numReadPins);
+    return pb->numCtrls;
+    //return (pb->useSelect ? pb->numReadPins * pb->numSelectPins : pb->numReadPins);
 }
 
 int calcDebouncerBase(int pbIndx) {
@@ -27,10 +27,19 @@ void initDebouncerBases() {
 }
 
 // traverse the pinBlocks and init their debouncers accordingly
+// *** need to enforce constraint during pinBlock readin that (baseNoteNum + numCtrls - 1) <= MAX_MIDI_NOTE_NUMBER (128)
 void initDebouncers() {
-    // need to reset them all, seeing flakiness
+    // need to reset them all
     for (int i = 0; i < MAX_DEBOUNCERS; i++) {
         gDebouncers[i].reset();
+    }
+    // traverse pinBlocks and poke noteNum and midiOutChan into the debouncers
+    for (int i = 0; i < nPinBlocks; i++) {
+        int dbase = gDebouncerBases[i];
+        const PinBlock_t *pb = &(gPinBlocks[i]);
+        for (int j = 0; j < pb->numCtrls; j++) {
+            gDebouncers[dbase + j].setNoteAndChan(pb->baseMidiNoteNum + j, pb->midiOutChan);
+        }
     }
 }
 

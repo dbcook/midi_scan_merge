@@ -129,10 +129,10 @@ int fastread_68() {return digitalReadFast(68);}
 int fastread_69() {return digitalReadFast(69);}
 
 // const array of pointers to the wrapper functions
-// have to use PROGMEM to force this into flash
+// can't use PROGMEM to force this into flash, crashes at runtime
 EXTERN const fastRdFuncPtr frPtrs[]
 #ifdef GEN_GLOBALS
-PROGMEM = {
+= {
     NULL,
     NULL,
     fastread_2,
@@ -209,8 +209,8 @@ PROGMEM = {
 
 // Read an arbitrary pin as quickly as possible
 // p can be a variable here
-int fastread(int p) {
-    return frPtrs[p]();
+int fastread(uint8_t p) {
+    return (*frPtrs[p])();
 }
 
 // wrapper functions for digitalWriteFast whose addresses can be taken and
@@ -285,11 +285,11 @@ void fastwrite_68(int v) {digitalWriteFast(68, v);}
 void fastwrite_69(int v) {digitalWriteFast(69, v);}
 
 // const array of pointers to the wrapper functions
-// have to use PROGMEM to force this into flash
+// Do not use PROGMEM to force this into flash, crashes at runtime
 
 EXTERN const fastWrFuncPtr fwPtrs[]
 #ifdef GEN_GLOBALS
-PROGMEM = {
+= {
     NULL,
     NULL,
     fastwrite_2,

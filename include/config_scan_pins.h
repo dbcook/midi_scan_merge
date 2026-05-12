@@ -55,8 +55,8 @@
 // };
 // Two 8x8 matrix keyboards, 61 actual notes, starting on pins 16 and 32, output to channels 5 and 6
 const PinBlock_t gPinBlocks[]  = {
-//     {DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 24, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5}
-//    ,{DIODE_MATRIX,  ACTIVE_LOW, 32, 8, 40, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6}
+    {DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 24, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5}
+   ,{DIODE_MATRIX,  ACTIVE_LOW, 32, 8, 40, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6}
 };
 
 // 4x8 pedalboard, 32 notes, starting on pin 16, output to channel 5
@@ -68,10 +68,8 @@ const PinBlock_t gPinBlocks[]  = {
 // const PinBlock_t gPinBlocks[]  = {
 //     {PARALLEL, ACTIVE_LOW, LED_BUILTIN, 0,  16, 32,  32, 24, 4}
 // };
-#if 0
 // experimental test of struct modified for multi-contact systems
 const PinBlockMulti_t gPinBlocksMulti[] = {
-    {DIODE_MATRIX, ACTIVE_LOW, 1, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, { {16, 26}, {0,0}, {0,0} }},     // 8X8 single contact
-    {DIODE_MATRIX, ACTIVE_LOW, 2, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, { {16, 26}, {32,40}, {0,0} }}    // 8x8 double contact
+//    {DIODE_MATRIX, ACTIVE_LOW, 1, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, { {16, 26}, {0,0}, {0,0} }},     // 8X8 single contact
+//    {DIODE_MATRIX, ACTIVE_LOW, 2, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, { {16, 26}, {32,40}, {0,0} }}    // 8x8 double contact
 };
-#endif
