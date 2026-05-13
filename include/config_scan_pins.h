@@ -3,9 +3,29 @@
 //-----------------------------------------------------------------------
 // Configures the scanning of input pins
 //-----------------------------------------------------------------------
-// Here is where you specify the diode matrix and parallel input pins layout for the scanner.
+// Here is where you specify the input pins layout for the scanner.
+// We currently support diode matrix arrays as well as linear (aka parallel) blocks of pins.
 //
-// For each group, in addition to the Arduino input pin ranges you get to specify:
+// Analog input support is planned but not yet implemented.
+//
+// The pin ranges you specify must be contiguous.  In diode matrix pinBlocks, the scan pin range
+// and the read pins range must be individually contiguous, but they don't have to be adjacent.
+//
+// It's possible to increase capacity by having multiple diode matrix blocks share the same
+// scan pins as long as everything has the same polarity.  This enables a theoretical maximum
+// of seven 8x8 diode matrix blocks on one Arduino Due.
+//
+// CAVEAT: there are various logical constraints on the pinBlock definitions that are not
+// enforced in the code (yet).  These include:
+//      The scan pins range and read pins range for a diode matrix must not overlap
+//      (base note number + number of notes - 1) must not exceed 127
+//      No pin range can extend beyond pin 69 (Mega 2560 and Due)
+//
+// Discontiguous pin ranges for a diode matrix are not yet supported.  However you can map
+// arbitrary pins as parallel inputs just by creating multiple parallel blocks that are
+// individually contiguous.
+//
+// For each group, in addition to the Arduino pin ranges you get to specify:
 //   The total number of notes to scan (for diode matrix where you likely will use 61 notes out of 64 in an 8x8 matrix)
 //   The base MIDI note number for the group
 //   The MIDI output channel for the NoteOn and NoteOff messages.  
@@ -28,22 +48,16 @@
 // You can use constants from midi_instruments.h and elsewhere as desired.
 //
 // You CANNOT use any of the following pins in any scan range:
-//    D0-D1 - hardware serial port reserved for bootloader serial and console debug messages
+//    D0-D1 - hardware serial port reserved for bootloader serial, debugger stub, and console debug messages
 //    D4  - Ethernet Shield 2: chip select for SD card
 //    D10 - Ethernet Shield 2: chip select for WizNet 5500 chip
 //    D13 - LED output on most Arduino implementations
-//    D14-D15 - MIDI serial shield connected to SER3 
+//    D14-D15 - Unavailable if you have a MIDI serial shield connected to SER3 
 //
 // If you don't have a MIDI serial shield you can freely use all pins from D14 to D53 as well as all 16 analog pins,
 // giving 56 readily available inputs, plus 3 short sequences (D2-3, D5-9, D11-12) that could be defined as
 // parallel blocks.  That will allow three 8x8 diode matrix keyboards plus 9 discretes (pistons etc.)
 //
-// Discontiguous pin ranges for a diode matrix are not yet supported.  To avoid consuming too much memory with a general
-// in-memory table allowing general discontiguous pins, it will need to be done in code.  A likely
-// way to do this is by recognizing a special base pin (pin 2 probably) that will programmatically
-// scan a hardcoded 8x8 (keyboard) or 8x4 (pedal) matrix sequence that dodges the pins that must be avoided.
-// This will not be necessary for parallel inputs as they can just be defined in short ranges to avoid the unusable pins.
-
 // A few constants to make the block defs more readable
 #define DIODE_MATRIX true
 #define PARALLEL false
@@ -53,10 +67,13 @@
 // const PinBlock_t gPinBlocks[]  = {
 //     {DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 24, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 8}
 // };
-// Two 8x8 matrix keyboards, 61 actual notes, starting on pins 16 and 32, output to channels 5 and 6
+
+// Two or three 8x8 matrix keyboards, 61 actual notes, starting on pins 16, 32, and 48, output to channels 5-7
+// A Mega 2560 can scan this at 0.9 KHz which is perfectly good
 const PinBlock_t gPinBlocks[]  = {
     {DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 24, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5}
    ,{DIODE_MATRIX,  ACTIVE_LOW, 32, 8, 40, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6}
+//   ,{DIODE_MATRIX,  ACTIVE_LOW, 48, 8, 56, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 7}
 };
 
 // 4x8 pedalboard, 32 notes, starting on pin 16, output to channel 5

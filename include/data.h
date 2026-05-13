@@ -2,14 +2,15 @@
 
 #include <Arduino.h>
 #include <MIDI.h>
+#include <AppleMIDI.h>
 
 #include "glob_gen.h"
+#include "debug.h"
 
 // USE_EXT_CALLBACKS is necessary to catch any MIDI events
 // Since it only takes about 150 bytes of flash we turn it on by default.
 #define USE_EXT_CALLBACKS
-//#define SerialMon Serial
-#include <AppleMIDI.h>
+
 
 #include "config_features.h"
 

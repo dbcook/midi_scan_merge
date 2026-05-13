@@ -16,7 +16,7 @@
 // always send outputs to the same interface.  This means no splitter / distribution capability, but that seems immaterial
 // for the expected use cases of this code.
 //
-// TODO: Implmement hardcoded discontiguous pin blocks covering pins 2-3, 5-9, 11-12, 16-53 (cannot use 4, 10, 13, 14-15)
+// TODO: Implmement hardcoded discontiguous diode matrix pin blocks covering pins 2-3, 5-9, 11-12, 16-53 (cannot use 4, 10, 13, 14-15)
 // TODO: Implement double-contact pin blocks.
 //
 typedef struct PinBlock {

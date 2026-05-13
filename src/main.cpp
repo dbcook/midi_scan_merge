@@ -7,10 +7,12 @@
 // MemoryFree library is arduino specific
 #endif
 #include <MIDI.h>
+#include <AppleMIDI.h>
 
 
 #define GEN_GLOBALS
 #include "glob_gen.h"
+#include "debug.h"
 #include "nv_mem.h"
 #include "stringify.h"
 #include "config_features.h"
@@ -42,27 +44,28 @@ on the more powerful processors.
 
 // scan component speed test routines
 
+// read all pins rapidly - requires that no pins are configured as output
 void test_fastread() {
     for (int i = 2; i < 69; i++) {
         fastread(i);
     }
 }
 
+// simulated 8x8 diode matrix - must config the scan pins as output
 void test_diodeMatrix_8x8(byte *buf) {
     for (int colPin = 20; colPin < 28; colPin++) {
-        //fastwrite(colPin, LOW);  // gotta config the pins
+        fastwrite(colPin, LOW);
         int indx = 0;
         for (int readPin = 28; readPin < 36; readPin++) {
             buf[indx++] = fastread(readPin);
         }
-        //fastwrite(colPin, HIGH);
+        fastwrite(colPin, HIGH);
     }
 }
 
 
-// Minimal-RAM scan block processor based on flash PinBlock defs and separately allocated debouncers
-// If we disavow the slow 16 MHz Arduinos this can be made more straightforward by building a fully RAM
-// resident table when the flash pinBlock defs are read and debouncers are allocated.
+// Minimal-RAM scan block processor based on flash PinBlock defs and separately allocated debouncers.
+// This design allows the slow Mega 2560 to be used effectively with at least 3 8x8 diode matrix blocks
 void scanPinBlocks() {
     for (int i = 0; i < nPinBlocks; i++) {
         // copying the PinBlock struct into RAM is almost twice as slow as reading directly from flash; don't do it
@@ -70,7 +73,8 @@ void scanPinBlocks() {
         midi::DataByte noteNum = pb->baseMidiNoteNum;
         int dbIndx = gDebouncerBases[i];
 
-        // These help confirm that the PinBlock is being read and processed correctly
+        // These msgs help confirm that the PinBlock is being read and processed correctly
+        // won't need this anymore once we have avr-stub debugging implemented
 #if 0
         Console_print("cbase "); Console_println(pb->selectBasePin);
         Console_print("clim "); Console_println(pb->selectBasePin + pb->numSelectPins);
@@ -92,17 +96,19 @@ void scanPinBlocks() {
                     //int inp = digitalRead(rowPin);
                     uint8_t inp = fastread(readPin);
 
-                    //gDebouncers[dbIndx++].stateSampleDummy(pb->activeLow ? !inp : inp, noteNum++, pb->midiOutChan); // logs notes and chans sequence
-                    //gDebouncers[dbIndx++].stateSample(true, noteNum++, pb->midiOutChan);  // causes initial burst of noteOn for all notes
-                    //gDebouncers[dbIndx++].stateSample(false, noteNum++, pb->midiOutChan);  // make sure it never sees anything
+                    //gDebouncers[dbIndx++].stateSampleDummy(pb->activeLow ? !inp : inp); // logs notes and chans sequence
+                    //gDebouncers[dbIndx++].stateSampleActive();    // causes initial burst of noteOn for all notes
 
                     // machinations to eliminate args to the debouncer - gave a considerable speedup
                     bool istate = (pb->activeLow)? !inp : inp;
-                    if (istate)
+                    if (istate) {
                         gDebouncers[dbIndx++].stateSampleActive();
-                    else
+                    }
+                    else {
                         gDebouncers[dbIndx++].stateSampleInactive();
+                    }
                     noteNum++;
+
 
 
                     // gDebouncers[dbIndx++].stateSample(pb->activeLow ? !inp : inp, noteNum++, pb->midiOutChan);
@@ -157,7 +163,18 @@ void pitchBendHandlerMidi0(midi::Channel channel, int pitchval) {
 }
 #endif
 
-// Start all MIDI ports and configure them
+void OnAppleMidiConnected(const APPLEMIDI_NAMESPACE::ssrc_t & ssrc, const char* name) {
+  gEthConnections++;
+  AM_DBG(F("AppleMidi received connect to session"), ssrc, name);
+}
+
+void OnAppleMidiDisconnected(const APPLEMIDI_NAMESPACE::ssrc_t & ssrc) {
+  gEthConnections--;
+  AM_DBG(F("AppleMidi disconnect"), ssrc);
+}
+
+
+// Start MIDI ports on all enabled transports and configure them
 //
 // For serial MIDI ports, this is where we set up channel separation remapping by setting callbacks
 // on all of the channel msg types.
@@ -167,6 +184,14 @@ void pitchBendHandlerMidi0(midi::Channel channel, int pitchval) {
 // However, if you then set the thru filter mode to "other channels" via setThruFilterMode(DifferentChannel),
 // it has the curious effect of discarding all channel messages while sending onward all non-channel msgs.
 //
+
+// Due to how APPLEMIDI_CREATE_INSTANCE works, the MIDI interface name (arg 2) has to be a pure literal (not stringized)
+// and the session name (arg 3) has to be a compile time constant string.
+// This produces a MIDI interface named MIDI and an AppleMidi session var named AppleMIDI, both based on the 2nd arg
+APPLEMIDI_CREATE_INSTANCE(EthernetUDP, MIDI, "Ethernet_MIDI", DEFAULT_CONTROL_PORT);
+
+
+
 void startMidi()
 {
 #if MERGE_SERIAL_INPUTS
@@ -205,8 +230,7 @@ void startMidi()
 #endif // MERGE_SERIAL_INPUTS
 
 #if ETHERNET_MIDI_CONNECT
-    // sadly AM_DBG is a recursive buggy thing
-    //AM_DBG_SETUP(consoleBaudRate);       // Inits (var) SerialMon at the given baud
+    // AM_DBG is a recursive template thing, trying to get it to coexist with my console macros
 
     // Ethernet interface setup before AppleMidi    
     Ethernet.init(4);   // set sockets to 4, giving larger 4k buffers
@@ -224,11 +248,10 @@ void startMidi()
         Console_println(F("Failed DHCP, retrying"));
         delay(500);
     }
+    
     Console_println(F("DHCP Success.  Host params:"));
-    Console_print(F(" hostname: "));
-    Console_println(buf);
-    Console_print(F(" IP      : "));
-    Console_println(Ethernet.localIP());
+    AM_DBG(F(" hostname: "), buf);
+    AM_DBG(F(" IP      : "), Ethernet.localIP());
 
     // make session name globally (and I do mean globally) unique by changing the default prefix and appending the full macaddr
     // I don't know if we will want to provide multiple sessions; if so they will need to be uniqified with a session counter.
@@ -253,25 +276,15 @@ void startMidi()
     snprintf(buf, sizeof(buf), "%02X%02X%02X%02X%02X%02X",
         gEthernetMac[0], gEthernetMac[1], gEthernetMac[2],
         gEthernetMac[3], gEthernetMac[4], gEthernetMac[5]);
-    Console_print(F(" Mac Addr: "));
-    Console_println(buf);
-    delay(500);
+    AM_DBG(F(" Mac Addr: "), buf);
 
-    // due to how this macro works, the session name (arg 3) has to be a compile time constant
-    // possibly clobbering memory in here
-    APPLEMIDI_CREATE_INSTANCE(EthernetUDP, MIDI, "Ethernet_MIDI", DEFAULT_CONTROL_PORT);
+    AM_DBG(F(" AppleMidi Name: "), AppleMIDI.getName());
+    AM_DBG(F(" Port: "), AppleMIDI.getPort());
 
-    // I think we're busted after this.  We get 65 nulls spit out and it crashes back through init, bad hostname ptr?
-    // Serial buffer overrun?  Adding flush after every Console_println made things much better
-    //␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀␀
-
-    Console_print(F(" Name: "));
-    Console_println(AppleMIDI.getName());
-    Console_print(F(" Port: "));
-    Console_println(AppleMIDI.getPort());
+    MIDI.begin();
+    AM_DBG(F("Eth MIDI started"));
     
-    // capture the interface in MIDI lib land
-    //gMidiEthOutputInterface = &ETHMIDI;
+    // capture addr of the base MIDI interface in MIDI lib land
     gMidiEthOutputInterface = &ETH_MIDI_BASENAME;
     gMidiEthOutputInterface->begin(ETH_MIDI_LISTEN_CHAN);
 
@@ -281,14 +294,9 @@ void startMidi()
     // Set up callbacks to monitor AppleMidi connections
 
     // connect/disconnect are the standard callbacks available without USE_EXT_CALLBACKS
-    gAppleMidiInstance->setHandleConnected([](const APPLEMIDI_NAMESPACE::ssrc_t & ssrc, const char* name) {
-        gEthConnections++;
-        AM_DBG("Eth connect ", ssrc, name, " NSessions ", gEthConnections);
-    });
-    gAppleMidiInstance->setHandleDisconnected([](const APPLEMIDI_NAMESPACE::ssrc_t & ssrc) {
-        gEthConnections--;
-        AM_DBG("Eth disconnect ", ssrc, " NSessions ", gEthConnections);
-    });
+    AppleMIDI.setHandleConnected(OnAppleMidiConnected);
+    AppleMIDI.setHandleDisconnected(OnAppleMidiDisconnected);
+
 
     // for scanner/encoder functions, the main scanner routine will just need to call
     // gMidiEthOutputInterface->sendNoteOn(note, vel, channel) in concert with the debouncers.
@@ -320,7 +328,6 @@ void startMidi()
 #endif // ETHERNET_MIDI_CONNECT
 
 }
-
 
 void configurePins() {
     pinMode(LED_BUILTIN, OUTPUT);
@@ -368,9 +375,12 @@ void configurePins() {
 void setup() 
 {
 
-    // Don't do this if AM_DBG is setup from AppleMidi
-#if USE_DEBUG_PRINT && !defined(SerialMon)
+#if USE_DEBUG_PRINT
+    // Wait for serial port to connect (needed for native USB, happens right away for regular serial?)
     Console->begin(consoleBaudRate);
+    while( !Console ) {
+        ;
+    }
 #endif
 
     configurePins();
@@ -411,9 +421,18 @@ void loop()
         loopCount = 0;
     }
 
+    // these test routines require that you configure the pins differently in configurePins, not according to the pinBlocks
     //test_fastread();
     // byte buf[10];
     // test_diodeMatrix_8x8(buf);
+
+#if ETHERNET_MIDI_CONNECT
+    // You have to call this (or maybe other MIDI lib routines) for connection requests to be serviced.
+    // It does noticeably slow down the scan rate from ~900 Hz to 770 Hz
+    // MIDI.check() doesn't work
+    MIDI.read();
+#endif
+
     scanPinBlocks();
 }
 

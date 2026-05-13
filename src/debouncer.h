@@ -30,9 +30,6 @@ class DebouncerBase {
             debounceMsec = 20;
         }
 
-        // Abstraction issues for stateSample - takes different args depending on derived class
-        //virtual void stateSample(bool sampleActive) = 0;
-
 };
 
 
@@ -83,7 +80,7 @@ class DebouncerMidiCCAnalog : public DebouncerBase {
 
 // As they currently exist after eliminating the MIDI interface pointer, these debouncers take 16 bytes
 // each so an 8x8 matrix takes up 968 bytes of RAM.
-// The note number and MIDI output channel have been kept since args to the sample processor cost a
+// The note number and MIDI output channel have been kept as member vars since args to the sample processor cost a
 // lot of execution time.
 class DebouncerMidiNoteSingleContact : public DebouncerBase {
     protected:
@@ -100,6 +97,15 @@ class DebouncerMidiNoteSingleContact : public DebouncerBase {
 
         DebouncerMidiNoteSingleContact() {
         }
+
+        void reset() {
+            DebouncerBase::reset();
+            activeTStamp = 0;
+            inactiveTStamp = 0;
+            inputIsActive = false;
+            ctrlIsOn = false;
+        }
+
         void setNoteAndChan( midi::DataByte note, midi::Channel outChan) {
             noteNum = note;
             midiOutChan = outChan;
@@ -110,28 +116,9 @@ class DebouncerMidiNoteSingleContact : public DebouncerBase {
         void stateSampleInactive();
 
         void activateControl();
-
         void deactivateControl();
 
-        void reset() {
-            DebouncerBase::reset();
-            activeTStamp = 0;
-            inactiveTStamp = 0;
-            inputIsActive = false;
-            ctrlIsOn = false;
-        }
-
-        // call this instead of the regular stateSample to verify the scanning sequence is correct
-        void stateSampleDummy(int sampleActive, midi::DataByte noteNum, midi::Channel midiOutChan) {
-            Console_print(F("note ")); Console_println(noteNum);
-            Console_print(F("chan ")); Console_println(midiOutChan);
-            Console_print(F("sample ")); Console_println(sampleActive);
-        }
-
-        //void testMember(int sampleActive, midi::DataByte noteNum, midi::Channel midiOutChan);
-
-
-
+        void stateSampleDummy(bool sampleActive);
 
 };
 

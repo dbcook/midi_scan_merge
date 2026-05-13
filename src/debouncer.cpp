@@ -79,6 +79,14 @@ void DebouncerMidiNoteSingleContact::stateSampleActive() {
     }
 }
 
+// call this instead of the regular stateSample to verify the scanning sequence is correct
+void DebouncerMidiNoteSingleContact::stateSampleDummy(bool sampleActive) {
+    Console_print(F("note ")); Console_println(this->noteNum);
+    Console_print(F("chan ")); Console_println(midiOutChan);
+    Console_print(F("sample ")); Console_println(sampleActive);
+}
+
+
 // Debouncer action routines
 // These use compile time and global transport output settings to generate outbound MIDI messages
 
