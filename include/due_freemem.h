@@ -17,12 +17,4 @@ uint32_t freeMemory() {
   return (uint32_t)(stack_ptr - heapend + mi.fordblks);
 }
 
-void display_freeram() {
-  struct mallinfo mi = mallinfo();
-  char *heapend = sbrk(0);
-  register char *stack_ptr asm ("sp");
-
-  Serial.print(F("Free RAM: "));
-  Serial.println(stack_ptr - heapend + mi.fordblks);
-}
 #endif
