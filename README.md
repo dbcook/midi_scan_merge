@@ -83,7 +83,8 @@ units, though not with Ethernet jacks.  Current work is focused on testing note 
 over the AppleMIDI Ethernet transport.
 
 Arduino Due uses a different architecture (SAM vs AVR) so there is a separate config for it
-in `platformio.ini`.  Right now both configs compile but proper operation on the Due is not confirmed.
+in `platformio.ini`.  Right now both configs compile and run, and can accept AppleMidi connections from
+Apple MIDI Studio running on a MacBook Pro (part of Audio MIDI Setup).
 
 ### Quick History
 Originally a prototype was implemented that seemed to run quickly on the Mega 2560.  However the
@@ -101,7 +102,7 @@ excessive amount of CPU, a third version has been implemented that uses the digi
 libary to reduce the IO overhead and give a scan time per input of about 7-8 usec
 on the Mega 2560.
 
-The fourth and current prototype adds Ethernet MIDI transport.
+The fourth and current prototype adds Ethernet MIDI transport and an operational Due build.
 
 ### Current Hotspots
 
@@ -119,9 +120,8 @@ It also has not been updated in a long time, but is widely reported to work.
 There are connectivity differences between the Mega and Due USB ports.  Notably the Due has two
 micro USB ports, one for programming and another for the native USB host.  On the other hand
 the Mega has a single USB-B 2.0 port, which is used for both programming and serial console output.
-I'm currently looking at how to properly handle console output on the DUE.  Available info
-suggests that Serial.begin() while using the programming port will obtain console output.
-For the MIDI IO, you need to put your MIDI library object on the native port `SerialUSB`.
+On the Due, the console output comes out on the programming port, while
+for MIDI IO, you need to put your MIDI library object on the native port `SerialUSB`.
 
 #### NV Params Options
 
