@@ -83,6 +83,11 @@ You can regain access to D14 and A7 of by using the shield without the plastic c
 a little of the sled (tested and works OK).  This will *not* work for A6 and you will need to create a bit
 of custom wiring for that since the PCB of the Ethernet shield shadows it.
 
+It may be good to interpose a custom PCB between the Arduino and the Ethernet shield to bring out all of
+the IO pins and gather them to standardized locking connectors (maybe XH, NOT IDC) on the rear portion of the board.
+I think we could put 8 IO pins plus a ground and +Vcc on each 10-pin connector, or 16 IO pins plus GND and Vcc
+on a 20 pin connector.
+
 ### Available Pins when Ethernet Shield 2 is Used with the Due or Mega 2560
 
 | Pin Range | Num Pins Avail | Alt. Functions

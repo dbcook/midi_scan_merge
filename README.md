@@ -59,11 +59,12 @@ widely available $50 network switches provide many ports of fully matrixed conne
 Bonjour discovery protocol, which like all broadcast discovery protocols, uses nonroutable
 broadcast addresses.  The practical meaning is that your computer needs a wired Ethernet
 connection and is connected to the same LAN as your MIDI scanners.
-* The Arduino Due and Mega 2560 have the same number of IO pins (69) and cost the same.
-The Due is 5x faster.  This means that there is no reason to use the Mega unless you have to
-read externally driven inputs at 5V, because the Due is a total 3.3V system and can't take 5V
-inputs.  If you are using the conventional active-low inputs using Arduino internal pullups, you can use
-the Due with no worries.
+* The Arduino Due and Mega 2560 have the same number of IO pins (70) and cost the same.
+The Due is 5x faster.  This means that there is really no reason to use the Mega unless you want a
+trivial way to read externally driven inputs at 5V, because the Due is a total 3.3V system and doesn't take 5V
+inputs directly.  If you are using the conventional active-low inputs using Arduino internal pullups, you can use
+the Due with no worries.  If you need conversion, the four-channel [Noyito Optocouplers](https://www.amazon.com/NOYITO-4-Channel-Optocoupler-Photoelectric-Converter/dp/B07TDYW5FF?th=1)
+may be of interest.
 * If you want a 1 KHz scan rate with Ethernet transport, on a Mega 2560 you can scan two 8x8 diode matrix blocks, i.e. two
 61-note keyboards.  With an Arduino Due, you should be able to do four keyboards with a scan rate over 2KHz.
 
@@ -102,7 +103,7 @@ on the Mega 2560.
 
 The fourth and current prototype adds Ethernet MIDI transport.
 
-### Current Hotspot
+### Current Hotspots
 
 There is a significant issue with getting portable NV param storage.  The Mega and Due use
 processors with different architecture and features.  Notably the Mega has 4 KB of onboard
@@ -114,6 +115,13 @@ be used for Arduino Mega 2560 with its 4K built-in EEPROM.
 For Arduino Due there is a Due Flash Storage Library https://github.com/sebnil/DueFlashStorage.
 Unfortunately the Due Flash Storage library is very primitive and does not even support a multi-byte read.
 It also has not been updated in a long time, but is widely reported to work.
+
+There are connectivity differences between the Mega and Due USB ports.  Notably the Due has two
+micro USB ports, one for programming and another for the native USB host.  On the other hand
+the Mega has a single USB-B 2.0 port, which is used for both programming and serial console output.
+I'm currently looking at how to properly handle console output on the DUE.  Available info
+suggests that Serial.begin() while using the programming port will obtain console output.
+For the MIDI IO, you need to put your MIDI library object on the native port `SerialUSB`.
 
 #### NV Params Options
 
@@ -155,23 +163,24 @@ to generally follow the conventions used in this project; nonconforming PRs will
 There are at least 3 suitable processors in the Arduino family with high pin counts and adequate speed.
 This table summarizes their capabilities and cost with Ethernet capability added.  The two
 Arduinos cost $50 but both need an Ethernet Shield ($30).  The Teensy 4.1 costs $31.50 with onboard Ethernet
-PHY and only needs a MagJack connector and a carrier board (est. $10), making it much cheaper and
-vastly more capable than the Arduinos.
+PHY and an SD card slot.  It only needs an ethernet connector connector with magnetics and a carrier board
+(est. $10), making it much cheaper and vastly more capable than the Arduinos.
 
-| Processor     | RAM       | Flash     | Speed     | Dig Pins  | Usable | USBHost | Cost | Remarks
-| ----          |----       |----       |----       |----       |----    |----     |----  |----
-| Ard Mega 2560 | 8 KB      | 256 KB    | 16 MHz    | 69        | 65     | NO      | 50   | Barely fast enough, eth $30
-| Arduino Due   | 96 KB     | 512 KB    | 84 MHz    | 69        | 65     | YES     | 50   | Fast enough, eth $30
-| Ard Leonardo  | 2.5 KB    | 32 KB     | 16 MHz    | 20        | 18     | YES     | 24   | Low pin count, small RAM
-| Teensy 4.1    | 1 MB      | 7936 KB   | 600 MHz   | 55 + 18   | TBD    | YES     | 42   | Max Overkill
+| Processor     | RAM       | Flash     | Speed     | Dig Pins  | Usable | USBHost | SD Card   | Cost | Remarks
+| ----          |----       |----       |----       |----       |----    |----     |----       |----  |----
+| Ard Mega 2560 | 8 KB      | 256 KB    | 16 MHz    | 70        | 66     | NO      | EthShield | 50   | Barely fast enough, eth $30
+| Arduino Due   | 96 KB     | 512 KB    | 84 MHz    | 70        | 66     | YES     | EthShield | 50   | Fast enough, eth $30
+| Ard Leonardo  | 2.5 KB    | 32 KB     | 16 MHz    | 20        | 18     | YES     | EthShield | 24   | Tiny RAM, low pin count
+| Teensy 4.1    | 1 MB      | 7936 KB   | 600 MHz   | 55 + 18   | TBD    | YES     | YES       | 42   | Max Overkill, Eth PHY onboard
 
 If you are committed to using Arduinos and don't want to mess with making carrier boards, the Due
 is the best choice.  It is a proper superset of the Mega 2560 at the same price, but adds 5x higher
-speed, USB host capability, 2x more flash, and 8x more RAM.  Because of this it's likely that I will
+speed, USB host capability, 2x more flash, and 12x more RAM.  Because of this it's likely that I will
 drop support for the Mega 2560 in future releases.
 
 The Leonardo offers USB host capability and is half the cost of the Due, but has only 1/3 the IO pins
-and a really tiny amount of RAM, and is 5x slower.  At most it can handle one 8x8 keyboard matrix.
+and a really tiny amount of RAM, and is no faster than the Mega 2560.  Due to the limited RAM
+I think that at most it can handle one 8x8 keyboard matrix.
 
 ### Arduino Architecture Difference Details
 
@@ -179,20 +188,37 @@ The Mega 2560 uses the Atmel AVR architecture, while the Due uses a SAM chip (SA
 boards for these have quite similar capabilities, but there are differences that have to be taken into account:
 
 * The Mega 2560 AVR processor has 4K of built-in EEPROM, while the Due does not, and uses a page of flash for NV
-storage instead.  This means that different NV libraries must be used, and the APIS, while similar,
-are not completely compatible.
+storage instead.  This means that different NV libraries must be used, and the APIs, while vaguely similar,
+are not compatible and not comparable, with the Due library being considerably less capable.
+
 * The AVR will accept 5V external inputs, while the Due can only take 3.3V.  This doesn't matter
 for typical key/pedal scanners because the contact systems are completely passive, but you have
-to be careful about hooking up externally sourced active-high inputs.
-* The Mega 2560 has 16 of its 69 IO pins configurable as analog, while the Due only has 12 out of 69.
+to be careful about hooking up externally sourced active-high inputs.  Multichannel optocoupler / 
+optoisolator voltage translation boards are available and inexpensive, see 
+[Noyito Optocouplers](https://www.amazon.com/NOYITO-4-Channel-Optocoupler-Photoelectric-Converter/dp/B07TDYW5FF?th=1).
+
+* The Mega 2560 has 16 of its 70 IO pins configurable as analog, while the Due only has 12 out of 70.
 This is because the Due provides different aux functionality on pins 50-53, including two DACs.
+
+* You need different cables for the two boards.  The Mega has a USB-B 2.0 socket that is used
+for programming and for the serial monitor.  However, the Due has two micro-USB ports, one
+dedicated for programming and the serial monitor, and the other for the native USB host.
+If you are just using Ethernet transport, you only need one cable on the programming port, which is
+the micro-USB port closest to the DC barrel power connector.
+If you are using the USB-MIDI transport, a second micro-USB cable is needed on the native port.
+It is possible (but not recommended) to program the Due through the native port.  Personally I see
+no reason to ever do this.
+
 * The `MemoryFree` library used to measure memory consumption only works on the AVR architecture.
-For SAM the heap boundary symbols are different.  For now this is of no consequence since it doesn't
+On the Due SAM processor the heap boundary symbols are different.  For now this is of no consequence since it doesn't
 look like memory will be an issue on the Due. There is [code suitable for SAM here]()
 
 ## Prerequisites and Building
 
-To configure, build and load this software into an Arduino, you need vscode with the PlatformIO plugin.
+To configure, build and load this software into an Arduino, you need vscode with at least these plugins:
+
+* Microsoft C/C++
+* PlatformIO
 
 On Apple Silicon Macs, you need to install rosetta 2 to allow emulation of the x86 compiler used
 for the older AVR based Arduinos (Mega/Uno/Nano).
@@ -212,6 +238,8 @@ The firmware will spit out useful periodic messages on the primary serial port. 
 with the bootloader, so if you add a MIDI serial shield you should modify it to use a different hardware
 serial port in order to allow these messages to be seen and avoid having to flip the prog/run switch
 every time you load code.
+
+Console output sent to `Serial` on the Due comes out the Programming port.
 
 ## Detailed Documentation
 
