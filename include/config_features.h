@@ -8,6 +8,9 @@
 
 // Major features
 
+// Define this to suppress most debug options that interfere with performance
+#define PRODUCTION_BUILD true
+
 
 // Contact debouncer allocation
 // The largest this could ever be would be 8*64 = 512, which would support 7 8x8 diode matrix
@@ -58,6 +61,14 @@
 #error MIDI_SERIAL_OUTPUT_PORTS > 1 unsupported!
 #endif
 #endif // SERIAL_MIDI_OUTPUT
+
+// Debugging feature to log the scanning sequence to console.  Disables regular scanning; must be false for production builds.
+// Not a runtime switch due to performance loss
+#if PRODUCTION_BUILD
+#define LOG_SCAN_SEQUENCE false
+#else
+#define LOG_SCAN_SEQUENCE true
+#endif
 
 // Configure array of port addresses needed
 #if SERIAL_MIDI_INPUT || SERIAL_MIDI_OUTPUT

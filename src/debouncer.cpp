@@ -80,10 +80,11 @@ void DebouncerMidiNoteSingleContact::stateSampleActive() {
 }
 
 // call this instead of the regular stateSample to verify the scanning sequence is correct
+// ***better to do this in the scan routine where the scan/read pin numbers are known
 void DebouncerMidiNoteSingleContact::stateSampleDummy(bool sampleActive) {
-    Console_print(F("note ")); Console_println(this->noteNum);
-    Console_print(F("chan ")); Console_println(midiOutChan);
-    Console_print(F("sample ")); Console_println(sampleActive);
+    AM_DBG(F("Ch"), midiOutChan);
+    AM_DBG(F("NT"), this->noteNum);
+    AM_DBG(F("sample"), sampleActive);
 }
 
 
