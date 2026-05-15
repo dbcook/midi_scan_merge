@@ -21,7 +21,31 @@
 // infinite spin when irrecoverable condition occurs
 #define DIE for (;;)
 
-// The use case for remapping is to make sure that messages from all connected MIDI interfaces
+EXTERN const char * gProdName
+#ifdef GEN_GLOBALS
+= "MIDI scan merge"
+#endif
+;
+
+EXTERN const char * gProdVersion
+#ifdef GEN_GLOBALS
+= "0.9.1"
+#endif
+;
+
+EXTERN const char * gProdCopyright
+#ifdef GEN_GLOBALS
+= "Copyright 2026 by David B. Cook"
+#endif
+;
+
+EXTERN const char * gProdLicense
+#ifdef GEN_GLOBALS
+= "Apache 2.0 license.  See LICENSE for details."
+#endif
+;
+
+// The use case for MIDI channel remapping is to make sure that messages from all connected MIDI interfaces
 // are sent on different channels.
 // This comes into play if you have a stack of keyboards, each of which having a scanner
 // that outputs MIDI on the same channel. In order to avoid note collisions you have to

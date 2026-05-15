@@ -63,8 +63,10 @@ connection and is connected to the same LAN as your MIDI scanners.
 The Due is 5x faster.  This means that there is really no reason to use the Mega unless you want a
 trivial way to read externally driven inputs at 5V, because the Due is a total 3.3V system and doesn't take 5V
 inputs directly.  If you are using the conventional active-low inputs using Arduino internal pullups, you can use
-the Due with no worries.  If you need conversion, the four-channel [Noyito Optocouplers](https://www.amazon.com/NOYITO-4-Channel-Optocoupler-Photoelectric-Converter/dp/B07TDYW5FF?th=1)
+the Due with no worries.  If you need conversion, the four-channel 
+[Noyito Optocouplers](https://www.amazon.com/NOYITO-4-Channel-Optocoupler-Photoelectric-Converter/dp/B07TDYW5FF?th=1)
 may be of interest.
+
 * If you want a 1 KHz scan rate with Ethernet transport, on a Mega 2560 you can scan two 8x8 diode matrix blocks, i.e. two
 61-note keyboards.  With an Arduino Due, you should be able to do four keyboards with a scan rate over 2KHz.
 

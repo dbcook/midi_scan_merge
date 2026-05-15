@@ -376,11 +376,14 @@ void setup()
 {
 
 #if USE_DEBUG_PRINT
-    // Wait for serial port to connect (needed for native USB, happens right away for regular serial?)
+    // Wait for serial port to connect (needed for native USB, happens right away for regular serial)
     Console->begin(consoleBaudRate);
     while( !Console ) {
         ;
     }
+    AM_DBG(gProdName, gProdVersion);
+    AM_DBG(gProdCopyright);
+    AM_DBG(gProdLicense);
 #endif
 
     configurePins();
@@ -399,19 +402,13 @@ void loop()
 {
     // loop rate tracking data for Arduino Mega 2560
     //   For reasons yet to be determined, diode matrix scanning time is a little nonlinear vs matrix size.
-    //   It seems like the higher number IO pins may be slower.
-    //   All of these numbers are BEFORE the implementation of fastread - they will improve considerably
-    //    raw rate with nothing but rate tracking:             165.7 KHz +/- 0.1 KHz
-    //    raw rate with a single function call                 117.0 KHz
-    //    single 8x4 matrix block                                2.64 KHz (379 usec = 11.8 usec per input)
-    //    single 8x8 matrix block                                1.56 KHz (pins 16-31 = 10.0 usec per input)  1.44 KHz (pins 32-48 = 10.8 usec per input)
-    //    two 8x8 matrix blocks                                  0.641 KHz (1560 usec = 12.2 usec per input )
-    //    single block of 32 parallels                           3.48 KHz (287 usec = 8.97 usec per input)
+    //   It seems like the higher number IO pins may be slower - branch offset efficiency vs offset byte size?
+    //    two 8x8 matrix blocks (Mega, slow IO)                  0.641 KHz (1560 usec = 12.2 usec per input )
+    //    single block of 32 parallels (Mega, slow IO            3.48 KHz (287 usec = 8.97 usec per input)
+    //    four 8x8 blocks (Due, fast IO)                         0.88 KHz (1132 usec = 4.64 usec per input)
     loopCount++;
-    unsigned long curMillis = millis();
-    if (lastMillis == 0) lastMillis = millis();
-    if ((curMillis - lastMillis) > 1000) {
-        lastMillis = curMillis;
+    if ((millis() - lastMillis) > 1000) {
+        lastMillis = millis();
         digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
         Console_print(F("rate: ")); Console_println(loopCount);
 #if defined(ARDUINO_AVR_MEGA2560)
@@ -427,8 +424,8 @@ void loop()
     // test_diodeMatrix_8x8(buf);
 
 #if ETHERNET_MIDI_CONNECT
-    // You have to call this (or maybe other MIDI lib routines) for connection requests to be serviced.
-    // It does noticeably slow down the scan rate from ~900 Hz to 770 Hz
+    // Polled IO: You have to call this periodically for connection requests to be serviced.
+    // There is no noticeable overhead - if scanPinBlocks() is turned off, MIDI.read() cycles at 11.15 KHz.
     // MIDI.check() doesn't work
     MIDI.read();
 #endif
