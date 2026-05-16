@@ -39,6 +39,7 @@ void initDebouncers() {
         const PinBlock_t *pb = &(gPinBlocks[i]);
         for (int j = 0; j < pb->numCtrls; j++) {
             gDebouncers[dbase + j].setNoteAndChan(pb->baseMidiNoteNum + j, pb->midiOutChan);
+            gDebouncers[dbase + j].setDebounceTimes(pb->attackDebounceMsec, pb->releaseDebounceMsec);
         }
     }
 }

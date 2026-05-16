@@ -29,6 +29,8 @@ typedef struct PinBlock {
     int numCtrls;                   // total number of controls (e.g. notes) scanned by the block.  Typ. 61 for organ keyboards.
     midi::DataByte baseMidiNoteNum; // start of contiguous MIDI note num range
     midi::Channel midiOutChan;      // MIDI output channel for the block
+    uint8_t attackDebounceMsec;     // debounce time for attack
+    uint8_t releaseDebounceMsec;    // debounce time for release
 } PinBlock_t;
 
 // experimental struct with a union for multi-contact blocks
@@ -48,6 +50,8 @@ typedef struct PinBlockMultContact {
     int numCtrls;                   // number of notes must be the same in all sub-blocks
     midi::DataByte baseMidiNoteNum; // start of contiguous MIDI note num range
     midi::Channel midiOutChan;      // MIDI output channel for the block
+    uint8_t attackDebounceMsec;     // debounce time for attack
+    uint8_t releaseDebounceMsec;    // debounce time for release
     PbPinInfo_t pbPinInfo[MAX_CONTACTS];
 } PinBlockMulti_t;
 
@@ -93,7 +97,7 @@ typedef struct MatrixEnt_Single_Dynamic {
 class ScanList_Single_Dyn {
     protected:
         midi::DataByte nextMidiNote = 20;                   // next midi note num to be assigned
-        unsigned long debounceMsec = 20;                    // ?? do we do this on a per-output basis?
+        unsigned long attackDebounceMsec = 20;                    // ?? do we do this on a per-output basis?
         t_midiInterfaceHWSerialPtr midiInterface;
         // The next list must be held in parallel with the static scanlist that is used to construct us
         //List<MatrixEnt_Single_Dynamic_t> scanList_dyn;
@@ -111,7 +115,7 @@ class ScanList_Single_Dyn {
                 newEnt.midiNoteNum = scanlist[i].midiNoteNum;
                 highestNote = (newEnt.midiNoteNum > highestNote) ? newEnt.midiNoteNum : highestNote;
                 newEnt.midiOutChan = scanlist[i].midiOutChan;
-                newEnt.debouncer = new DebouncerMidiNoteSingleContact(debounceMsec, midiInterface, newEnt.midiNoteNum, newEnt.midiOutChan);
+                newEnt.debouncer = new DebouncerMidiNoteSingleContact(attackDebounceMsec, midiInterface, newEnt.midiNoteNum, newEnt.midiOutChan);
                 scanList_dyn.Add(newEnt);
             }
             nextMidiNote = highestNote + 1;
@@ -128,7 +132,7 @@ class ScanList_Single_Dyn {
                     newEnt.readPin = j;
                     newEnt.midiNoteNum = nextMidiNote++;
                     newEnt.midiOutChan = pinblock.midiOutChan;
-                    newEnt.debouncer = new DebouncerMidiNoteSingleContact(debounceMsec, midiInterface, newEnt.midiNoteNum, newEnt.midiOutChan);
+                    newEnt.debouncer = new DebouncerMidiNoteSingleContact(attackDebounceMsec, midiInterface, newEnt.midiNoteNum, newEnt.midiOutChan);
                     scanList_dyn.Add(newEnt);
                 }
             }

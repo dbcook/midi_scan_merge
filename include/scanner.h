@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include "glob_gen.h"
+#include "fastread.h"
 #include "data.h"
 
 // Minimal-RAM scan block processor based on flash PinBlock defs and separately allocated debouncers.
@@ -56,7 +57,6 @@ class InputScanner {
                         }
 #endif
                         // Alternate per-read-pin handlers that were useful for testing
-                        //gDebouncers[dbIndx].stateSampleDummy(pb->activeLow ? !inp : inp); // logs notes and chans sequence but not pins
                         //gDebouncers[dbIndx].stateSampleActive();    // causes initial burst of noteOn for all notes
 
                         dbIndx++;

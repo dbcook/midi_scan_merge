@@ -8,26 +8,28 @@
 #include "data.h"
 
 // *** think about how to debounce in velocity mode where we have to consider two related signals
-//     need info from two different matrix objects, so need class VelocityMatrixPair
+//     need info from two different matrix objects, so need class VelocityMatrixPair or similar
 
 // *** TODO: add debouncers for
-//       debouncing dual contact note-on/off sensors
+//       debouncing dual contact velocity sensitive note-on/off sensors and triple-contact aftertouch keyboards
 //       sending CC messages based on an analog encoder input (requires refactoring DebouncerBase a bit)
 //       SysRealtime messages based on a contact closure 
 
 // Base class for bidirectional (attack and release) switch debounder
-// Derived classes can support debouncers for MIDI notes, buttons/switches/pistons (CC messages), and even non-MIDI interfaces
+// Derived classes can support debouncers for MIDI notes, knobs and analog pedals (CC messages), and even non-MIDI interfaces
 
 class DebouncerBase {
     protected:
-        uint8_t debounceMsec = 20;              // stabilization time for the input signal
+        uint8_t attackDebounceMsec = 20;              // stabilization time for the input signal inactive->active
+        uint8_t releaseDebounceMsec = 5;              // debounce time for active->inactive transition
 
         DebouncerBase() {}
 
     public:
 
         virtual void reset() {
-            debounceMsec = 20;
+            attackDebounceMsec = 20;
+            releaseDebounceMsec = 5;
         }
 
 };
@@ -78,9 +80,8 @@ class DebouncerMidiCCAnalog : public DebouncerBase {
 
 // Debouncer for bo†h matrix and parallel scanners that generate note-on and note-off messages
 
-// As they currently exist after eliminating the MIDI interface pointer, these debouncers take 16 bytes
-// each so an 8x8 matrix takes up 968 bytes of RAM.
-// The note number and MIDI output channel have been kept as member vars since args to the sample processor cost a
+// As they currently exist, these debouncers take 14 bytes each so an 8x8 matrix takes up 896 bytes of RAM.
+// Various fields that are common to the entire pinBlock have been kept as member vars since args to stateSample() cost a
 // lot of execution time.
 class DebouncerMidiNoteSingleContact : public DebouncerBase {
     protected:
@@ -95,8 +96,7 @@ class DebouncerMidiNoteSingleContact : public DebouncerBase {
 
     public:
 
-        DebouncerMidiNoteSingleContact() {
-        }
+        DebouncerMidiNoteSingleContact() {}
 
         void reset() {
             DebouncerBase::reset();
@@ -111,14 +111,17 @@ class DebouncerMidiNoteSingleContact : public DebouncerBase {
             midiOutChan = outChan;
         }
 
+        void setDebounceTimes(uint8_t attackDebounce, uint8_t releaseDebounce) {
+            attackDebounceMsec = attackDebounce;
+            releaseDebounceMsec = releaseDebounce;
+        }
+
         void stateSample(bool sampleActive, midi::DataByte noteNum, midi::Channel midiOutChan);
         void stateSampleActive();
         void stateSampleInactive();
 
         void activateControl();
         void deactivateControl();
-
-        void stateSampleDummy(bool sampleActive);
 
 };
 

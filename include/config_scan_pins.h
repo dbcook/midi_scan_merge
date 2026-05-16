@@ -65,29 +65,29 @@
 
 // A single 8x8 keyboard matrix, 61 notes, starting on pin 16, output to channel 8
 // const PinBlock_t gPinBlocks[]  = {
-//     {DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 24, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 8}
+//     {DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 24, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 8, 20, 5}
 // };
 
 // Two to four 8x8 matrix keyboards, 61 actual notes, shared scan pins 16-23, read pin groups starting on pins 24, 32, 40, 48, output to channels 5-8
 // A Due can scan all four at 0.88 KHz which is perfectly good
 const PinBlock_t gPinBlocks[]  = {
-    {DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 24, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5}
-   ,{DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 32, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6}
-   ,{DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 40, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 7}
-   ,{DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 48, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 8}
+    {DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 24, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, 20, 5}
+   ,{DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 32, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, 20, 5}
+   ,{DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 40, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 7, 20, 5}
+   ,{DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 48, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 8, 20, 5}
 };
 
 // 4x8 pedalboard, 32 notes, starting on pin 16, output to channel 5
 // const PinBlock_t gPinBlocks[]  = {
-//     {DIODE_MATRIX,  ACTIVE_LOW, 16, 4, 20, 8, PEDAL32_MAX_NOTES, PEDAL_LOW_NOTENUM, 5}
+//     {DIODE_MATRIX,  ACTIVE_LOW, 16, 4, 20, 8, PEDAL32_MAX_NOTES, PEDAL_LOW_NOTENUM, 5, 20, 5}
 // };
 
 // A block of 32 parallel inputs starting on pin 16, output to channel 4
 // const PinBlock_t gPinBlocks[]  = {
-//     {PARALLEL, ACTIVE_LOW, LED_BUILTIN, 0,  16, 32,  32, 24, 4}
+//     {PARALLEL, ACTIVE_LOW, LED_BUILTIN, 0,  16, 32,  32, 24, 4, 20, 5}
 // };
 // experimental test of struct modified for multi-contact systems
 const PinBlockMulti_t gPinBlocksMulti[] = {
-//    {DIODE_MATRIX, ACTIVE_LOW, 1, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, { {16, 26}, {0,0}, {0,0} }},     // 8X8 single contact
-//    {DIODE_MATRIX, ACTIVE_LOW, 2, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, { {16, 26}, {32,40}, {0,0} }}    // 8x8 double contact
+//    {DIODE_MATRIX, ACTIVE_LOW, 1, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, 20, 5, { {16, 26}, {0,0}, {0,0} }},     // 8X8 single contact
+//    {DIODE_MATRIX, ACTIVE_LOW, 2, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, 20, 5, { {16, 26}, {32,40}, {0,0} }}    // 8x8 double contact
 };

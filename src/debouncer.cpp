@@ -17,9 +17,9 @@ void DebouncerMidiNoteSingleContact::stateSample(bool sampleActive, midi::DataBy
         }
         // now we know note is on but we are in release debounce state
         // see if debounce interval is satisfied
-        if ((curms - this->inactiveTStamp) >= this->debounceMsec) {
+        if ((curms - this->inactiveTStamp) >= this->releaseDebounceMsec) {
             this->ctrlIsOn = false;
-            Console_print("note off "); Console_println(noteNum);
+            AM_DBG(F("note off"), noteNum);
             this->deactivateControl();
         }
     }
@@ -32,9 +32,9 @@ void DebouncerMidiNoteSingleContact::stateSample(bool sampleActive, midi::DataBy
         }
         // now we know the note is not on but we are in active debounce
         // see if debounce interval is satisfied
-        if ((curms - this->activeTStamp) >= this->debounceMsec  ) {
+        if ((curms - this->activeTStamp) >= this->attackDebounceMsec  ) {
             this->ctrlIsOn = true;
-            Console_print(F("note on ")); Console_println(noteNum);
+            AM_DBG(F("note on"), noteNum);
             this->activateControl();
         }
     }
@@ -42,7 +42,6 @@ void DebouncerMidiNoteSingleContact::stateSample(bool sampleActive, midi::DataBy
 
 
 // Splitting the sample handling to eliminate an arg to the debouncer unexpectedly doubled the scan speed
-// based on this I think we need to put the noteNum and outputChannel into the debouncer objects (2 bytes, so costs 0.5KB)
 void DebouncerMidiNoteSingleContact::stateSampleInactive() {
     unsigned long curms;
     if (!this->ctrlIsOn) return;    // sample is off, note is off, bail
@@ -53,10 +52,10 @@ void DebouncerMidiNoteSingleContact::stateSampleInactive() {
         this->inputIsActive = false;
     }
     // now we know note is on but we are in release debounce state
-    // see if debounce interval is satisfied
-    if ((curms - this->inactiveTStamp) >= this->debounceMsec) {
+    // see if release debounce interval is satisfied
+    if ((curms - this->inactiveTStamp) >= this->releaseDebounceMsec) {
         this->ctrlIsOn = false;
-        Console_print("note off "); Console_println(noteNum);
+        AM_DBG(F("note off"), noteNum);
         this->deactivateControl();
     }
 }
@@ -72,19 +71,11 @@ void DebouncerMidiNoteSingleContact::stateSampleActive() {
     }
     // now we know the note is not on but we are in active debounce
     // see if debounce interval is satisfied
-    if ((curms - this->activeTStamp) >= this->debounceMsec  ) {
+    if ((curms - this->activeTStamp) >= this->attackDebounceMsec  ) {
         this->ctrlIsOn = true;
-        Console_print(F("note on ")); Console_println(noteNum);
+        AM_DBG(F("note on"), noteNum);
         this->activateControl();
     }
-}
-
-// call this instead of the regular stateSample to verify the scanning sequence is correct
-// ***better to do this in the scan routine where the scan/read pin numbers are known
-void DebouncerMidiNoteSingleContact::stateSampleDummy(bool sampleActive) {
-    AM_DBG(F("Ch"), midiOutChan);
-    AM_DBG(F("NT"), this->noteNum);
-    AM_DBG(F("sample"), sampleActive);
 }
 
 
