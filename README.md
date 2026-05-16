@@ -56,26 +56,45 @@ widely available $50 network switches provide many ports of fully matrixed conne
 
 ## Things You Need to Know
 
-* For AppleMIDI Ethernet to work, your computer and the scanner Arduinos must be on the same network segment.  This is required by the
-Bonjour discovery protocol, which like many broadcast discovery protocols, uses nonroutable
+* For AppleMIDI Ethernet to work, your computer and the scanner Arduinos must be on the same network segment.
+This is required by the Bonjour discovery protocol, which like many broadcast discovery protocols, uses nonroutable
 broadcast addresses.  The practical meaning is that your computer needs a wired Ethernet
 connection and must be connected to the same LAN as your MIDI scanners.
 
+* All Mac computers can connect directly to a device running this firmware with zero added software.  Support
+is very mature and built-in via the Apple MIDI Studio module that resides in Settings | Audio MIDI Setup.
+
+* Windows: Microsoft has just (early 2026) released an 
+[in-box UMP MIDI driver together with downloadable apps](https://github.com/microsoft/MIDI/releases) following
+years of nothing but 3rd party MIDI support.  Reports on how-to-use and whether it works would be
+appreciated as I have no suitable Windows systems to test it on.  The driver is now baked in to recent
+Windows versions but the MIDI apps have to be downloaded separately.  The good news is that apps are
+all open source. Tobias Erichsen's [rtpMIDI](https://www.tobias-erichsen.de/software/rtpmidi.html) has
+been the standard 3rd party solution for quite some time, though Microsoft's major updates have reportedly
+made occasional restarts needed of late.
+
 * The Arduino Due and Mega 2560 have the same number of IO pins (70) and cost the same.
-The Due is over 2x faster (5x clock speed and 2+X net).  This means that there is really no reason to use the Mega unless you want a
+The Mega 2560 has only 8 KB RAM and is memory-limited to 3 8x8 diode matrix keyboards, though it would
+have enough CPU to support four or five.
+The Due is over 2x faster (5x clock speed and 2+X net) and has a lot more memory.  It will easily support
+the maximum possible seven 8x8 diode matrix blocks.
+
+* If you want a 500 Hz scan rate with Ethernet transport, you're in great shape with a Due; it
+will do 540 Hz with *seven* 8x8 diode matrix blocks, which is the largest number possible without
+external I/O expansion hardware.
+
+* This all means that there is really no reason at all to use a Mega unless have them lying around or you want a
 trivial way to read externally driven inputs at 5V, because the Due is a total 3.3V system and doesn't take 5V
-inputs directly.  If you are using the conventional active-low inputs using Arduino internal pullups, you can use
-the Due with no worries.  If you need conversion, the four-channel 
+inputs directly.  If you are using the conventional active-low inputs via the Arduino internal pullups, you can use
+the 3.3V Due with no extra hardware.  If you need conversion, the four-channel 
 [Noyito Optocouplers](https://www.amazon.com/NOYITO-4-Channel-Optocoupler-Photoelectric-Converter/dp/B07TDYW5FF?th=1)
 may be of interest.
 
-* How fast does it need to be?  The scan latency with a scan cycle time of 2 milliseconds (rate of 500Hz) is 1.0 +/- 1.0 milliseconds, i.e.
+* How fast does it really need to be?  The scan latency with a scan cycle time of 2 milliseconds (rate of 500Hz) is 1.0 +/- 1.0 milliseconds, i.e.
 half the scan cycle time, with a minimum of 0 and a maximum of 2.0 msec.  Compared to the debounce
 time of 15-20 milliseconds, 1 msec is only 5-8% of the total latency.  Thus you can have as low as 200 Hz scan rate
 before the scan latency reaches 20% of the total.
 
-* If you want a 1 KHz scan rate with Ethernet transport, on a Mega 2560 you can scan two 8x8 diode matrix blocks, i.e. two
-61-note keyboards.  With an Arduino Due, you can do four keyboards with a scan rate of nearly 1KHz.
 
 ## State of the Project
 

@@ -21,7 +21,7 @@
 #if defined(__SAM3X8E__)
 #define MAX_DEBOUNCERS 512
 #elif defined(ARDUINO_AVR_MEGA2560)
-#define MAX_DEBOUNCERS 256
+#define MAX_DEBOUNCERS 192
 #else
 #error "Unsupported processor type!"
 #endif

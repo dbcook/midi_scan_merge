@@ -56,7 +56,8 @@
 //
 // If you don't have a MIDI serial shield you can freely use all pins from D14 to D53 as well as all 16 analog pins,
 // giving 56 readily available inputs, plus 3 short sequences (D2-3, D5-9, D11-12) that could be defined as
-// parallel blocks.  That will allow three 8x8 diode matrix keyboards plus 9 discretes (pistons etc.)
+// parallel blocks.  That will allow at least three 8x8 diode matrix keyboards (up to six with shared scan pin ranges
+// on a Due/Teensy) plus 9 discretes (pistons etc.).
 //
 // A few constants to make the block defs more readable
 #define DIODE_MATRIX true
@@ -68,9 +69,12 @@
 //     {DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 24, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 8, 20, 5}
 // };
 
-// Two to four 8x8 matrix keyboards, 61 actual notes, shared scan pins 16-23, read pin groups starting on pins 24, 32, 40, 48, output to channels 5-8
-// A Due can scan four at 0.9 KHz which is perfectly good
+// This example has the maximum number of 8x8 matrix blocks that each processor can handle
+// A Due can scan four at 0.9 KHz and seven at 540 Hz which is perfectly good
+// The Mega 2560 can do 3 at 780 Hz, but at 4 8x8's there is an obvious stack/heap collision with 256 debouncers leaving ~1900 bytes free memory
+// Therefore the Mega build has been set to only allocate 192 debouncers (3 keyboards' worth)
 const PinBlock_t gPinBlocks[]  = {
+#if defined(__SAM3X8E__)
     {DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 24, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, 20, 5}
    ,{DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 32, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, 20, 5}
    ,{DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 40, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 7, 20, 5}
@@ -78,6 +82,14 @@ const PinBlock_t gPinBlocks[]  = {
    ,{DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 48, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 9, 20, 5}
    ,{DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 48, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 10, 20, 5}
    ,{DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 48, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 11, 20, 5}
+#elif defined(ARDUINO_AVR_MEGA2560)
+    {DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 24, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, 20, 5}
+   ,{DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 32, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, 20, 5}
+   ,{DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 40, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 7, 20, 5}
+#else
+#error "Unsupported processor type!"
+#endif
+
 };
 
 // 4x8 pedalboard, 32 notes, starting on pin 16, output to channel 5
