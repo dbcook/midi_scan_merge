@@ -73,6 +73,7 @@
 // A Due can scan four at 0.9 KHz and seven at 540 Hz which is perfectly good
 // The Mega 2560 can do 3 at 780 Hz, but at 4 8x8's there is an obvious stack/heap collision with 256 debouncers leaving ~1900 bytes free memory
 // Therefore the Mega build has been set to only allocate 192 debouncers (3 keyboards' worth)
+#if 0
 const PinBlock_t gPinBlocks[]  = {
 #if defined(__SAM3X8E__)
     {DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 24, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, 20, 5}
@@ -91,6 +92,7 @@ const PinBlock_t gPinBlocks[]  = {
 #endif
 
 };
+#endif
 
 // 4x8 pedalboard, 32 notes, starting on pin 16, output to channel 5
 // const PinBlock_t gPinBlocks[]  = {
@@ -98,9 +100,9 @@ const PinBlock_t gPinBlocks[]  = {
 // };
 
 // A block of 32 parallel inputs starting on pin 16, output to channel 4
-// const PinBlock_t gPinBlocks[]  = {
-//     {PARALLEL, ACTIVE_LOW, LED_BUILTIN, 0,  16, 32,  32, 24, 4, 20, 5}
-// };
+const PinBlock_t gPinBlocks[]  = {
+    {PARALLEL, ACTIVE_LOW, LED_BUILTIN, 0,  16, 32,  32, 24, 4, 20, 5}
+};
 // experimental test of struct modified for multi-contact systems
 const PinBlockMulti_t gPinBlocksMulti[] = {
 //    {DIODE_MATRIX, ACTIVE_LOW, 1, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, 20, 5, { {16, 26}, {0,0}, {0,0} }},     // 8X8 single contact
