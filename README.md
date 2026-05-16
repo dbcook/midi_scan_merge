@@ -2,12 +2,11 @@
 
 This PlatformIO based project targets Arduino family processors with large digital IO pin counts,
 and is aimed at exploiting the number of IO pins in order to scan up to four 8x8 diode matrix groups
-representing up to 256 discrete contacts, and possibly more with a fast processor (Arduino Due)
+representing up to 256 discrete contacts, and possibly more with a fast processor (Arduino Due or Teensy)
 and shared scan pins.
 
 We perform high precision switch debouncing and emit MIDI NoteOn and NoteOff messages accordingly
-over various transports (serial, Ethernet, USB).  Once contact closure inputs are working, the
-next phase will be to scan analog inputs with configurable deadband and low pass filtering.
+over various transports (serial, Ethernet, USB).
 
 The system context for this is to support musical instruments such as pipe organs - actual or virtual - that
 may have a large number of inputs:  four or more 61-note keyboards, a 32-note pedalboard, up to 100 momentary-contact
@@ -39,15 +38,17 @@ widely available $50 network switches provide many ports of fully matrixed conne
 
 ## Future Features
 
+* Teensy support.  Teeensy 4.1 is 600 MHz, 1 MB RAM, 8GB flash, onboard Eth PHY and SD card, costs $35
+* Analog input support (pedals, rotary encoders, sliders) with deadband and lowpass filtering
 * Programmable parameters via SD card, writeable from any computer
-* Velocity sense (dual contact) scanning
-* Aftertouch (triple contact) scanning
-* Support IO extenders (shift registers etc.)
+* Multi-contact keyboard scanning
+    * Velocity sensing (dual contact)
+    * Aftertouch (triple contact)
 * MIDI decoder - consume messages on one or more channels and activate outputs
     * LEDs
     * Multi-digit displays (e.g. sequence frame number)
     * Solenoid drivers (e.g. for electromechanical organ stops)
-* Teensy support.  Teeensy 4.1 is 600 MHz, 1 MB RAM, 8GB flash, onboard Eth PHY and SD card, costs $35
+* Support IO extenders (shift registers etc.)
 * Hardware
     * General purpose carrier and interconnect board for Teensy 4.1
     * Diode matrix boards for parallel keyboards
@@ -55,20 +56,26 @@ widely available $50 network switches provide many ports of fully matrixed conne
 
 ## Things You Need to Know
 
-* Your computer and the scanner Arduinos must be on the same network segment.  This is required by the
-Bonjour discovery protocol, which like all broadcast discovery protocols, uses nonroutable
+* For AppleMIDI Ethernet to work, your computer and the scanner Arduinos must be on the same network segment.  This is required by the
+Bonjour discovery protocol, which like many broadcast discovery protocols, uses nonroutable
 broadcast addresses.  The practical meaning is that your computer needs a wired Ethernet
-connection and is connected to the same LAN as your MIDI scanners.
+connection and must be connected to the same LAN as your MIDI scanners.
+
 * The Arduino Due and Mega 2560 have the same number of IO pins (70) and cost the same.
-The Due is 5x faster.  This means that there is really no reason to use the Mega unless you want a
+The Due is over 2x faster (5x clock speed and 2+X net).  This means that there is really no reason to use the Mega unless you want a
 trivial way to read externally driven inputs at 5V, because the Due is a total 3.3V system and doesn't take 5V
 inputs directly.  If you are using the conventional active-low inputs using Arduino internal pullups, you can use
 the Due with no worries.  If you need conversion, the four-channel 
 [Noyito Optocouplers](https://www.amazon.com/NOYITO-4-Channel-Optocoupler-Photoelectric-Converter/dp/B07TDYW5FF?th=1)
 may be of interest.
 
+* How fast does it need to be?  The scan latency with a scan cycle time of 2 milliseconds (rate of 500Hz) is 1.0 +/- 1.0 milliseconds, i.e.
+half the scan cycle time, with a minimum of 0 and a maximum of 2.0 msec.  Compared to the debounce
+time of 15-20 milliseconds, 1 msec is only 5-8% of the total latency.  Thus you can have as low as 200 Hz scan rate
+before the scan latency reaches 20% of the total.
+
 * If you want a 1 KHz scan rate with Ethernet transport, on a Mega 2560 you can scan two 8x8 diode matrix blocks, i.e. two
-61-note keyboards.  With an Arduino Due, you should be able to do four keyboards with a scan rate over 2KHz.
+61-note keyboards.  With an Arduino Due, you can do four keyboards with a scan rate of nearly 1KHz.
 
 ## State of the Project
 

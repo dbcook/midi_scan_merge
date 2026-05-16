@@ -1,3 +1,30 @@
+/*
+-------------------------------------------------------------------------------------
+MIDI scanner / merger/ decodeer for Arduino and Teensy family processors
+-------------------------------------------------------------------------------------
+
+This is a multi-function organ oriented MIDI scanner / merger / decoder for Arduino
+architecture processors such as the Arduino Due, Mega 2560, and Teensy. Its primary functions are:
+
+1) Read digital and analog input from various devices (keyboards, pedalboards, expression
+pedals) and transmit corresponding MIDI messages to a computer or other
+upstream MIDI device via Ethernet, USB or classic MIDI serial transports.
+
+2) Provide MIDI scan/merge capability, where up to 3 incoming classic MIDI serial
+ports can be merged onto the output transport along with scanned signals from the hardware inputs.
+
+3) [Future feature] Decode MIDI messages coming from upstream to operate hardware signal outputs.
+These outputs could be LED drivers, solenoid relays, or even a display.
+
+The implementation uses the well known 47Effects Arduino MIDI library, which
+supports multiple add-on transport interfaces including MIDI 31kbps serial (DIN-5 plugs),
+USB-MIDI and Ethernet MIDI (RTP-MIDI / Apple Midi).
+
+The scanner features in this package support any combination of diode matrix and parallel input arrays up to
+a total of 64-65 inputs.  This could allow as many as 7 8x8 diode matrix arrays on the more
+powerful processors.
+*/
+
 #include <Arduino.h>
 #include <Ethernet3.h>
 #include <ListLib.h>
@@ -23,25 +50,6 @@
 #include "debouncer.h"
 #include "pin_list.h"
 #include "scanner.h"
-
-/*
--------------------------------------------------------------------------------------
-MIDI input scanner and remapping MIDI merger for Arduino and Teensy family processors
--------------------------------------------------------------------------------------
-
-This is an organ oriented MIDI scanner whose primary function is to read digital
-and analog input from various devices (keyboards, pedalboards, expression
-pedals) and transmit corresponding MIDI messages to a computer or other
-upstream MIDI device.
-
-The implementation uses the well known 47Effects Arduino MIDI library, which
-supports multiple transport interfaces including MIDI 31kbps serial (DIN-5 plugs),
-USB-MIDI and Ethernet MIDI (RTP-MIDI / Apple Midi).
-
-This package supports any combination of diode matrix and parallel input arrays up to
-a total of 64-65 inputs.  This could allow as many as 7 8x8 diode matrix arrays
-on the more powerful processors.
-*/
 
 // MIDI channel remapping callbacks
 // We wouldn't need a separate handler per serial interface if we could introspect 
@@ -77,6 +85,7 @@ void pitchBendHandlerMidi0(midi::Channel channel, int pitchval) {
 }
 #endif
 
+#if ETHERNET_MIDI_CONNECT
 void OnAppleMidiConnected(const APPLEMIDI_NAMESPACE::ssrc_t & ssrc, const char* name) {
   gEthConnections++;
   AM_DBG(F("AppleMidi received connect to session"), ssrc, name);
@@ -86,6 +95,7 @@ void OnAppleMidiDisconnected(const APPLEMIDI_NAMESPACE::ssrc_t & ssrc) {
   gEthConnections--;
   AM_DBG(F("AppleMidi disconnect"), ssrc);
 }
+#endif
 
 
 // Start MIDI ports on all enabled transports and configure them
@@ -214,7 +224,7 @@ void startMidi()
     // gMidiEthOutputInterface->sendNoteOn(note, vel, channel) in concert with the debouncers.
     // The debouncer has to be given enough information to know what transport to use.
     
-    // for decoder functions we'll need to add callbacks for the messages we accept
+    // for decoder functions we need callbacks for the messages we accept
 #if ETHERNET_MIDI_DECODE_INPUT
     gMidiEthOutputInterface->setHandleNoteOn([](byte channel, byte note, byte velocity) {
         AM_DBG(F("Decoded NoteOn"), channel, note, velocity);
@@ -227,7 +237,7 @@ void startMidi()
     });
 #endif
 #if 0
-    // The remaining basic channel message callbacks are these:
+    // The remaining AppleMIDI basic channel message callbacks are these:
     MIDI.setHandleProgramChange([](Channel channel, byte v1) {
         AM_DBG("ProgramChange", channel, v1);
     });
@@ -238,7 +248,8 @@ void startMidi()
 
 #endif // ETHERNET_MIDI_CONNECT
 
-}
+} // startMidi
+
 
 void configurePins() {
     pinMode(LED_BUILTIN, OUTPUT);
@@ -309,7 +320,7 @@ void setup()
     startMidi();
 }
 
-// statics for the main loop
+// local statics for the main loop
 unsigned long lastMillis = 0;
 unsigned long loopCount = 0;
 
@@ -334,9 +345,8 @@ void loop()
     }
 
 #if ETHERNET_MIDI_CONNECT
-    // Polled IO: You have to call this periodically for connection requests to be serviced.
+    // Polled read IO: You have to call this periodically for connection requests to be serviced.
     // There is no noticeable overhead - if scanPinBlocksSingleContact() is turned off, MIDI.read() cycles at 11.15 KHz.
-    // MIDI.check() doesn't work
     MIDI.read();
 #endif
 

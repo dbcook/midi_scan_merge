@@ -69,12 +69,15 @@
 // };
 
 // Two to four 8x8 matrix keyboards, 61 actual notes, shared scan pins 16-23, read pin groups starting on pins 24, 32, 40, 48, output to channels 5-8
-// A Due can scan all four at 0.88 KHz which is perfectly good
+// A Due can scan four at 0.9 KHz which is perfectly good
 const PinBlock_t gPinBlocks[]  = {
     {DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 24, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, 20, 5}
    ,{DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 32, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, 20, 5}
    ,{DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 40, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 7, 20, 5}
    ,{DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 48, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 8, 20, 5}
+   ,{DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 48, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 9, 20, 5}
+   ,{DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 48, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 10, 20, 5}
+   ,{DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 48, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 11, 20, 5}
 };
 
 // 4x8 pedalboard, 32 notes, starting on pin 16, output to channel 5
