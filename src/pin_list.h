@@ -55,6 +55,20 @@ typedef struct PinBlockMultContact {
     PbPinInfo_t pbPinInfo[MAX_CONTACTS];
 } PinBlockMulti_t;
 
+// struct for analog input blocks
+// Resolution: we always tell the Arduino runtimes to operate as if we had 16-bit resolution.
+// There is no harm in that even though older boards have 10 or 12 bit resolution.
+// Filtering is done via the one-line classic exponential smoothing filter
+//   val = (alpha * sample) + (1 - alpha) * val
+// where alpha [0,1) is the sensitivity constant
+typedef struct PinBlockAnalogRead {
+    uint8_t basePin;                // starting pin number for this block (easiest to use A0, A1, etc.)
+    midi::DataByte baseCCNum;       // starting CC number for inputs in this block
+    uint8_t numPins;                // number of pins in this block (consecutive CC numbers)
+    uint8_t deadband;               // deadband in integer tenths of a percent, max 255
+    float filterAlpha;              // constant for lowpass filter, typ. about 0.1 to 0.3
+} PinBlockAnalogRead_t;
+
 
 
 // Include specific configuration here - it requires the above typedef
@@ -63,6 +77,7 @@ typedef struct PinBlockMultContact {
 
 const int nPinBlocks = sizeof(gPinBlocks) / sizeof(PinBlock_t);
 const int nPinBlocksMulti = sizeof(gPinBlocksMulti) / sizeof(PinBlockMulti_t);
+const int nPinBlocksAnalogRead = sizeof(gPinBlocksAnalogRead) / sizeof(PinBlockAnalogRead_t);
 
 int calcPinBlockSize(int pbIndx);
 int calcDebouncerBase(int pbIndx);

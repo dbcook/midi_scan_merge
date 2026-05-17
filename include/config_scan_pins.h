@@ -108,3 +108,12 @@ const PinBlockMulti_t gPinBlocksMulti[] = {
 //    {DIODE_MATRIX, ACTIVE_LOW, 1, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, 20, 5, { {16, 26}, {0,0}, {0,0} }},     // 8X8 single contact
 //    {DIODE_MATRIX, ACTIVE_LOW, 2, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, 20, 5, { {16, 26}, {32,40}, {0,0} }}    // 8x8 double contact
 };
+
+// ------------------------------
+// Analog input pin defs
+// ------------------------------
+// If you need discontiguous CC message numbers you have to define a pin block for each one
+// Pin numbers:  On Due and Mega 2560, A0 is pin 54.  You can just the A0, A1, etc. symbols here if you want.
+const PinBlockAnalogRead_t gPinBlocksAnalogRead [] = {
+    { A0, 73, 3, 5, 0.2 }
+};
