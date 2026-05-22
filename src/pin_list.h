@@ -6,6 +6,8 @@
 #include "midi_instruments.h"
 #include "debouncer.h"
 
+
+
 // Pin block definition for both matrix and parallel scan organization
 // All instances of this should be static (const).  Cannot be a class because of this.
 // Relies on implicitly incrementing MIDI note numbers and debouncer index.
@@ -33,9 +35,11 @@ typedef struct PinBlock {
     uint8_t releaseDebounceMsec;    // debounce time for release
 } PinBlock_t;
 
-// experimental struct with a union for multi-contact blocks
+// new struct with a union for multi-contact blocks
+// this will replace PinBlock_t soon
 
 #define MAX_CONTACTS 3
+
 typedef struct PbPinInfo{
     int selectBasePin;              // start of select pin range, ignored if useSelect == false
     int readBasePin;                // start of read pin range
@@ -57,21 +61,23 @@ typedef struct PinBlockMultContact {
 
 // struct for analog input blocks
 // Resolution: we always tell the Arduino runtimes to operate as if we had 16-bit resolution.
-// There is no harm in that even though older boards have 10 or 12 bit resolution.
+// There is no harm in that even though older boards have 10 or 12 bit resolution; the LSBs in the 16-bit result are just zero.
 // Filtering is done via the one-line classic exponential smoothing filter
 //   val = (alpha * sample) + (1 - alpha) * val
 // where alpha [0,1) is the sensitivity constant
+// There is no center position parameter since auto centering joysticks are rare within the instrument use case
 typedef struct PinBlockAnalogRead {
     uint8_t basePin;                // starting pin number for this block (easiest to use A0, A1, etc.)
     midi::DataByte baseCCNum;       // starting CC number for inputs in this block
     uint8_t numPins;                // number of pins in this block (consecutive CC numbers)
-    uint8_t deadband;               // deadband in integer tenths of a percent, max 255
+    float deadband;                 // center deadband in percent of range
+    float lowEndband;               // guardband at bottom in percent of range
+    float highEndBand;              // guardband at top in percent of range
     float filterAlpha;              // constant for lowpass filter, typ. about 0.1 to 0.3
 } PinBlockAnalogRead_t;
 
 
-
-// Include specific configuration here - it requires the above typedef
+// Include specific configuration
 #include "config_scan_pins.h"
 
 
@@ -85,73 +91,3 @@ void initDebouncerBases();
 void initDebouncers();
 int calcDebouncerIndx(int pbIndx, int selectPin, int readPin);
 int getPinBlockIndxFromDebouncerIndx( int debIndx );
-
-
-
-
-
-
-// *** OBSOLETE BUT KEPT FOR REFERENCE TEMPORARILY ***
-#if 0
-typedef struct MatrixEnt_Single_Dynamic {
-    DebouncerMidiNoteSingleContact debouncer;          // less RAM to directly include 20-byte debouncer object - need to get it constructed right
-//  midi::DataByte midiNoteNum;                        // needs to be dynamic param only if expanding a PinBlock spec
-//  MatrixEnt_Single_Static_t * pMatrixEnt;            // pointer to matching static scanlist entry in flash - do we need this back index?
-    
-    // *** don't duplicate static params in RAM, maintain parallel list of objects with notenum and single-contact debouncers
-    // at 32 bytes each four 8x8's (256 entries) would be ~8K, so gotta be somewhat smaller
-    // bool useSelect;
-    // int selectPin;
-    // int readPin;
-    // midi::Channel midiOutChan;
-    
-} MatrixEnt_Single_Dynamic_t;
-
-
-// Master pin list used by the scanner for all single-contact triggers
-class ScanList_Single_Dyn {
-    protected:
-        midi::DataByte nextMidiNote = 20;                   // next midi note num to be assigned
-        unsigned long attackDebounceMsec = 20;                    // ?? do we do this on a per-output basis?
-        t_midiInterfaceHWSerialPtr midiInterface;
-        // The next list must be held in parallel with the static scanlist that is used to construct us
-        //List<MatrixEnt_Single_Dynamic_t> scanList_dyn;
-
-    public:
-        void addScanList(scanlist_static_t scanlist) {
-            // We don't assign the running note num here - specified in the incoming list; we just track the highest one seen
-            midi::DataByte highestNote = nextMidiNote - 1;
-            for (unsigned int i = 0; i < scanlist.Count(); i++) {
-                MatrixEnt_Single_Dynamic_t newEnt;
-                newEnt.pMatrixEnt = &(scanlist[i]);         // record index of flash scanlist record (if we can use an index it should save 2 bytes)
-                newEnt.useSelect = scanlist[i].useSelect;
-                newEnt.selectPin = scanlist[i].selectPin;
-                newEnt.readPin = scanlist[i].readPin;
-                newEnt.midiNoteNum = scanlist[i].midiNoteNum;
-                highestNote = (newEnt.midiNoteNum > highestNote) ? newEnt.midiNoteNum : highestNote;
-                newEnt.midiOutChan = scanlist[i].midiOutChan;
-                newEnt.debouncer = new DebouncerMidiNoteSingleContact(attackDebounceMsec, midiInterface, newEnt.midiNoteNum, newEnt.midiOutChan);
-                scanList_dyn.Add(newEnt);
-            }
-            nextMidiNote = highestNote + 1;
-        }
-
-        // expand a matrix pin block def and add the resulting entries to the scan list
-        // >>>This would require the full dynamic scan list, cannot support 4 8x8's this way, won't fit in 8K RAM
-        void addPinBlock(PinBlock_t pinblock) {
-            for (int i = pinblock.selectBasePin; i < pinblock.selectBasePin + pinblock.numSelectPins; i++) {
-                for (int j = pinblock.readBasePin; j < pinblock.readBasePin + pinblock.numReadPins; j++) {
-                    MatrixEnt_Single_Dynamic_t newEnt;
-                    newEnt.useSelect = pinblock.useSelect;
-                    newEnt.selectPin = i;
-                    newEnt.readPin = j;
-                    newEnt.midiNoteNum = nextMidiNote++;
-                    newEnt.midiOutChan = pinblock.midiOutChan;
-                    newEnt.debouncer = new DebouncerMidiNoteSingleContact(attackDebounceMsec, midiInterface, newEnt.midiNoteNum, newEnt.midiOutChan);
-                    scanList_dyn.Add(newEnt);
-                }
-            }
-        }
-
-};
-#endif
