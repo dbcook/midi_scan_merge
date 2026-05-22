@@ -36,11 +36,10 @@ powerful processors.
 #include <MIDI.h>
 #include <AppleMIDI.h>
 
-
 #define GEN_GLOBALS
 #include "glob_gen.h"
 #include "debug.h"
-#include "nv_mem.h"
+//#include "nv_mem.h"
 #include "stringify.h"
 #include "config_features.h"
 #include "fastread.h"
