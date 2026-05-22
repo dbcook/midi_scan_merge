@@ -1,4 +1,5 @@
 #pragma once
+#include <Arduino.h>
 
 //-----------------------------------------------------------------------
 // Configures the scanning of input pins
@@ -113,7 +114,12 @@ const PinBlockMulti_t gPinBlocksMulti[] = {
 // Analog input pin defs
 // ------------------------------
 // If you need discontiguous CC message numbers you have to define a pin block for each one
-// Pin numbers:  On Due and Mega 2560, A0 is pin 54.  You can just the A0, A1, etc. symbols here if you want.
+// Pin numbers:  On Due and Mega 2560, A0 is pin 54.  You can also use the A0, A1, etc. symbols here if you want.
+#define ANALOG_FILTER_ALPHA 0.2
+#define ANALOG_DEADBAND 0.5
+#define ANALOG_LOW_GUARDBAND 1.0
+#define ANALOG_HIGH_GUARDBAND 1.0
+
 const PinBlockAnalogRead_t gPinBlocksAnalogRead [] = {
-    { A0, 73, 3, 5, 0.2 }
+    { A0, 73, 3, ANALOG_DEADBAND, ANALOG_LOW_GUARDBAND, ANALOG_HIGH_GUARDBAND, ANALOG_FILTER_ALPHA }
 };
