@@ -13,7 +13,18 @@
 
 #if USE_DEBUG_PRINT
 const unsigned long consoleBaudRate = 115200;
+
+// *** platform difference: on Grand Central we need Serial_ (from USBAPI.h) but on Due we need HardwareSerial (hardwareserial.h)
+// Platform IO processor symbols
+//     Grand Central: ARDUINO_ADAFRUIT_GRAND_CENTRAL_M4 (we have to define this in build_flags in platformio.ini)
+//     Arduino Due  : ARDUINO_SAM_DUE
+#if defined(ARDUINO_SAM_DUE)
 EXTERN HardwareSerial *Console
+#elif defined(ARDUINO_ADAFRUIT_GRAND_CENTRAL_M4)
+EXTERN Serial_ *Console
+#else
+#error Unsupported board type!
+#endif
 #ifdef GEN_GLOBALS
 = &Serial
 #endif

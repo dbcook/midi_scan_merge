@@ -13,20 +13,11 @@
 
 
 // Contact debouncer allocation
-// The largest this could ever be would be 8*64 = 512, which would support 7 8x8 diode matrix
+// The largest this could ever be would be 7*64 = 448, which would support 7 8x8 diode matrix
 // keyboards / pedalboards / piston arrays, with the 8 select lines shared across all matrices.
-// On Arduino Due and Teensy 4.1 this will be no problem.
-// On a mega you can't go much past 256 and maybe not even that far due to both memory and CPU limitations.
+// On Grand Central, Arduino Due and Teensy 4.1 this will be no problem.
 
-#if defined(__SAM3X8E__)
-#define MAX_DEBOUNCERS 512
-#elif defined(ARDUINO_AVR_MEGA2560)
-#define MAX_DEBOUNCERS 192
-#else
-#error "Unsupported processor type!"
-#endif
-
-
+#define MAX_DEBOUNCERS 448
 
 //---------------------------------------
 // Serial MIDI Interfaces
