@@ -55,134 +55,16 @@ widely available $50 network switches provide many ports of fully matrixed conne
     * General purpose carrier and interconnect board for Teensy 4.1
     * LED driver (matrix based) for MIDI decoder
 
+## Supported Boards
+
+[__AdaFruit Grand Central M4 Express__](https://www.adafruit.com/product/4064)
+
+[__Arduino Due__](https://store-usa.arduino.cc/products/arduino-due)
+
+[__PJRC/SparkFun Teensy 4.1__](https://www.sparkfun.com/teensy-4-1.html) - future
+
 ## Things You Need to Know
 
-### MCU Boards
-
-Here are the boards that are suitable to use with this MIDI IO processor firmware. The application with its
-full feature set is fairly demanding, and I am targeting the ability to handle all the inputs for a good
-sized organ (up to 448 inputs) with one processor.  The minimum system requirements are:
-  * 32 KB SRAM
-  * 128 KB flash
-  * 100 MHz clock
-  * Class compliant USB host port onboard
-  * Available micro SD card slot (onboard perferred)
-  * Available Ethernet
-  * Board support exists in PlatformIO
-
-The boards:
-
-* [__AdaFruit Grand Central M4 Express__](https://www.adafruit.com/product/4064) - $40.
-This board uses the well known Arduino Mega/Due pin layout.
-It has an ATSAMD51 CPU  (gen M4) with 120 MHz clock, 256 KB of SRAM, 1 MB of flash, full USB host capability,
-and a micro SD card slot.
-There are 70 total IO pins of which 16 can be analog inputs.
-It also has an 8MB onboard QSPI flash data store that is externally writable through the USB port and could be
-used for configuration files.  It will accept the standard Arduino Ethernet Shield 2 ($30).
-   * USB-MIDI transport: works standalone, no extra hardware
-   * Ethernet MIDI transport: requires Ethernet Shield 2
-   * Serial MIDI transprot: requires 3.3V capable MIDI shield attached to a hardware serial port
-
-* [__Arduino Due__](https://store-usa.arduino.cc/products/arduino-due)
-This official Arduino board is over 10 years old but still useful.  It features an 84 MHz SAMD M3 chip, 96KB of
-SRAM (two banks, 64+32), 512 KB flash, and full USB host capability.  On this board there are 70 total IO pins
-in the same layout as the Grand Central, but only 12 are analog capable inputs.  It does not have an onboard
-SD card slot but can utilize the on on the Ethernet shield at the price of 3-4 IO pins.
-It costs $50, making it noticeably more
-expensive than the Grand Central despite having an older generation CPU and a lot less memory.  It also accepts
-the Arduino Ethernet Shield 2.
-   * USB-MIDI transport: requires Ethernet Shield 2 to host SD card
-   * Ethernet MIDI transport: requires Ethernet Shield 2
-   * Serial MIDI transport:
-      * Requires Ethernet Shield 2 to host SD card
-      * Requires 3.3V capable MIDI shield attached to a hardware serial port
-
-* [__PJRC/SparkFun Teensy 4.1__](https://www.sparkfun.com/teensy-4-1.html)
-The Teensy 4.1 is in many ways the king of low cost MCUs.  It has a screaming 600 MHz two instruction-per-clock
-Cortex M7 chip with 64-bit hardware FPU, 512 KB of single-clock RAM (1 MB total RAM), 8 MB of code flash (256KB reserved),
-18 analog capable inputs out of 55 total IO pins, onboard Ethernet PHY, and a micro SD card slot.  The core module
-only costs $31.50, but you will need an Ethernet jack costing a few dollars, and likely a screw terminal
-breakout board, which can be $15 to $25.  It does have 15 fewer total IO pins vs the Grand Central and Due,
-which limits the scope of organ that can be handled with one processor.
-   * USB-MIDI transport: works standalone
-   * Ethernet MIDI transport: requires Ethernet jack and ribbon cable ($5-10)
-   * Serial MIDI transport: requires 3.3V capable MIDI shield attached to a hardware serial port
-
-### Board Feature Commonality and Differences
-
-* The AdaFruit Grand Central M4 and Arduino Due have the same number of IO pins (70)
-on the same physical board layout.  Both will accept the Arduino Ethernet Shield 2, which has an
-SD card slot.
-
-* The Grand Central has an onboard SD card slot, meaning that if we adopt that as the standard means
-of configuration, the Grand Central is totally self sufficient for USB MIDI transport.
-The Arduino Due needs an Ethernet Shield or something similar to provide an SD card slot
-for configuration, even if Ethernet MIDI transport is not being used.
-
-* Both the Grand Central and Due will easily support the maximum number of digital IO inputs that is achievable
-via diode matrix on 64 usable pins (448).
-
-This table summarizes the capabilities and cost of the known suitable boards.
-Both the Grand Central and Arduino Due need an Ethernet Shield ($30, included in the Cost column) if
-Ethernet MIDI transport is needed. The Due needs the Ethernet shield to house the SD card slot regardless of the MIDI transport.
-This makes the Due much more expensive than the Grand Central for USB-MIDI transport.
-
-The Teensy 4.1 costs $31.50 with onboard Ethernet PHY and an SD card slot.  It only needs an ethernet
-connector with magnetics and a carrier board (est. $15), making it the least costly option
-though it has 15 fewer IO pins than the Grand Central and Due.
-
-| Processor              | RAM       | Flash     | Speed     | Dig Pins  | Usable | USBHost | SD Card   | Cost | Remarks
-| ----                   |----       |----       |----       |----       |----    |----     |----       |----  |----
-| AdaFruit Grand Central | 256 KB    | 1 MB      | 120 MHz   | 70        | 65     | YES     | YES       | 70   | Fast, plenty of RAM and pins
-| Arduino Due            | 96 KB     | 512 KB    | 84 MHz    | 70        | 66     | YES     | EthShield | 80   | Fast enough, eth $30
-| Teensy 4.1             | 1 MB      | 7936 KB   | 600 MHz   | 55        | 50?    | YES     | YES       | ~50  | Very fast, Eth PHY onboard
-
-### Processors Not Considered Suitable
-
-The following are examples of processor modules that are not suitable for use with this firmware.  The principal reason is not
-having enough RAM to accommodate the full slate of MIDI transport libraries, the config parser, and a reasonable number of
-input debounce/filters.
-
-The Arduino Mega 2560 was once the standard for high pin count Arduinos, but it is now very old and has been 
-completely obsoleted by the Arduino Due and AdaFruit Grand Central.
-It is possible - and I did this during the prototyping phase of this project - to make a firmware build that will process
-3-4 keyboards on the Mega 2560, but it has to be completely configured in code, which is not a production-worthy solution.
-Adding the Ethernet library took the capacity down to
-two keyboards, and adding the SD card loadable config support looked like it would further reduce that.
-
-The Arduino Leonardo has *extremely* small RAM and a pin count that is just enough to allow scanning a single matrix
-keyboard (61 inputs) and emitting the MIDI over USB.  It would need to have a fixed configuration with a separate build for
-each output MIDI channel.  It would be a very expensive solution for a full organ which can have 400-600 inputs that
-would require 7-10 Leonardos.  Due to library RAM/stack needs I think that getting the AppleMIDI Ethernet transport
-onto the Leonardo is most likely infeasible as well.
-
-| Processor     | RAM       | Flash     | Speed     | Dig Pins  | Usable | USBHost | SD Card   | Cost     | Remarks
-| ----          |----       |----       |----       |----       |----    |----     |----       |----      |----
-| Ard Mega 2560 | 8 KB      | 256 KB    | 16 MHz    | 70        | 66     | NO      | EthShield | 50 + 30  | Not enough RAM, not fast enough for a full organ
-| Ard Leonardo  | 2.5 KB    | 32 KB     | 16 MHz    | 20        | 18     | YES     | infeasible | 24.     | Insufficient RAM, low pin count
-
-
-### System Voltage 3.3V Considerations
-
-* All of the suitable MCU boards are 3.3V systems and cannot take 5V or higher input signals directly.  If you are using the
-conventional active low open-drain inputs via the internal pullups (typical for simple contact closures), you can use
-the 3.3V systems with no extra hardware.  If you need conversion, the four-channel 
-[Noyito Optocouplers](https://www.amazon.com/NOYITO-4-Channel-Optocoupler-Photoelectric-Converter/dp/B07TDYW5FF?th=1)
-and similar producst may be of interest.  For full keyboards you will probably want a higher-density solution.
-
-### Mega 2560 Not Supported
-
-The Mega 2560 has been a popular board over the years but it now functionally
-obsolete with its tiny 8 KB RAM and slow 16 MHz clock.  I used one for the initial debug of the input
-debouncing but quickly came under severe memory pressure - it really does not have enough SRAM for
-the desired feature set and number of inputs.
-
-The Mega 2560 is fundamentally incapable of doing USB-MIDI transport due to the lack of class-compliant USB
-host support.
-
-For these reasons, and because boards with *much* higher capacity are available for the
-same or less money, support for the Mega 2560 has been dropped.  Some infelicities in the code that
-were done in an effort to work with its 8 KB of RAM are going to be reversed.
 
 ### Scan Cycle Rate
 
@@ -212,6 +94,9 @@ made occasional restarts needed of late.
 
 ## State of the Project
 
+The fourth and current prototype adds working Ethernet MIDI transport and replaces the Mega 2560
+build with an operational Arduino Due build.
+
 Since the 3rd prototype, the Ethernet libraries have been integrated up to the point where
 session connection and note emitting code is in place. The Ethernet transport now
 succesfully handles session establishment and disconnection from a Mac via the built-in
@@ -225,25 +110,6 @@ and debug of two-contact velocity sensing.
 
 Grand Central M4 and Arduino Due use a different MCU architecture (SAM vs AVR) so there will be separate configs for them
 in `platformio.ini`.  Right now the Due config runs and a Grand Central config will be added shortly.
-
-Originally a prototype was implemented that seemed to run quickly on the Mega 2560.  However the
-straightforward code design ended up using 35-40% too much memory, even with limited features and
-no user configurability.
-
-A second version was built that reduced RAM usage by enough to get
-the data for a full slate of four 8x8 diode matrix arrays into about 4KB of RAM.  The time per
-input scanned was about 9-12 usec depending on circumstances.  This version passed several
-logging tests to prove that the pin block definitions are being read and scanned properly.
-Several matrix and block scenarios appeared to run correctly. The debugging of this version 
-used a generic serial MIDI shield with the hardware hacked to attach it to the Mega 2560 SER3 port.
-
-After discovery that the stock Arduino digital IO library routines were eating up an
-excessive amount of CPU, a third version was implemented that uses the digitalWriteFast
-libary to reduce the IO overhead and give a scan time per input of about 7-8 usec
-on the Mega 2560.
-
-The fourth and current prototype adds Ethernet MIDI transport and replaces the Mega 2560
-build with an operational Arduino Due build.
 
 ### Current Hotspots
 
@@ -264,8 +130,8 @@ that is only going to be used with USB transport.  The latter problem is easily 
 just using a Grand Central or Teensy instead, so I'm still leaning toward SD cards.
 
 I was initially looking at using onboard or emulated EEPROM interfaces, but after realizing that
-they are not usually programmable externally I've dropped that idea.  The libraries and APIs
-are also very disparate between boards and it would take a lot of work to impose a common wrapper.
+config storage has to be programmable externally for our UI-less application I've dropped that idea.
+The libraries and APIs are also very disparate between boards and it would take a lot of work to impose a common wrapper.
 The MIDI processors are also not going to have UI hardware, so getting a fairly extensive config into the unit
 would involve a lot of code.
 
@@ -376,6 +242,125 @@ chaining of serial MIDI ports introduces 2+ msec MINIMUM of delay per hop, so si
 from the most distant manual in a 4-manual daisy chain could be delayed by as much as 10 msec.
 The last note in a big chord from the end of the chain could see 20-25 msec of latency.
 
+### MCU Board Details
+
+This section explains in detail the boards that are suitable to use with this firmware. The application with its
+full feature set is fairly demanding, and I am targeting the ability to handle all the inputs for a good
+sized organ (up to 448 inputs) with one processor.
+
+#### System Requirements
+
+The minimum system requirements are:
+  * 32 KB SRAM
+  * 128 KB flash
+  * 100 MHz clock
+  * Class compliant USB host port onboard
+  * Available micro SD card slot (onboard perferred)
+  * Available Ethernet
+  * Board support exists in PlatformIO
+
+#### The boards
+
+* [__AdaFruit Grand Central M4 Express__](https://www.adafruit.com/product/4064) - $40.
+This board uses the well known Arduino Mega/Due pin layout.
+It has an ATSAMD51 CPU  (gen M4) with 120 MHz clock, 256 KB of SRAM, 1 MB of flash, full USB host capability,
+and a micro SD card slot.
+There are 70 total IO pins of which 16 can be analog inputs.
+It also has an 8MB onboard QSPI flash data store that is externally writable through the USB port and could be
+used for configuration files.  It will accept the standard Arduino Ethernet Shield 2 ($30).
+   * USB-MIDI transport: works standalone, no extra hardware
+   * Ethernet MIDI transport: requires Ethernet Shield 2
+   * Serial MIDI transprot: requires 3.3V capable MIDI shield attached to a hardware serial port
+
+* [__Arduino Due__](https://store-usa.arduino.cc/products/arduino-due)
+This official Arduino board is over 10 years old but still useful.  It features an 84 MHz SAMD M3 chip, 96KB of
+SRAM (two banks, 64+32), 512 KB flash, and full USB host capability.  On this board there are 70 total IO pins
+in the same layout as the Grand Central, but only 12 are analog capable inputs.  It does not have an onboard
+SD card slot but can utilize the on on the Ethernet shield at the price of 3-4 IO pins.
+It costs $50, making it noticeably more
+expensive than the Grand Central despite having an older generation CPU and a lot less memory.  It also accepts
+the Arduino Ethernet Shield 2.
+   * USB-MIDI transport: requires Ethernet Shield 2 to host SD card
+   * Ethernet MIDI transport: requires Ethernet Shield 2
+   * Serial MIDI transport:
+      * Requires Ethernet Shield 2 to host SD card
+      * Requires 3.3V capable MIDI shield attached to a hardware serial port
+
+* [__PJRC/SparkFun Teensy 4.1__](https://www.sparkfun.com/teensy-4-1.html)
+The Teensy 4.1 is in many ways the king of low cost MCUs.  It has a screaming 600 MHz two instruction-per-clock
+Cortex M7 chip with 64-bit hardware FPU, 512 KB of single-clock RAM (1 MB total RAM), 8 MB of code flash (256KB reserved),
+18 analog capable inputs out of 55 total IO pins, onboard Ethernet PHY, and a micro SD card slot.  The core module
+only costs $31.50, but you will need an Ethernet jack costing a few dollars, and likely a screw terminal
+breakout board, which can be $15 to $25.  It does have 15 fewer total IO pins vs the Grand Central and Due,
+which limits the scope of organ that can be handled with one processor.
+   * USB-MIDI transport: works standalone
+   * Ethernet MIDI transport: requires Ethernet jack and ribbon cable ($5-10)
+   * Serial MIDI transport: requires 3.3V capable MIDI shield attached to a hardware serial port
+
+#### Board Feature Commonality and Differences
+
+* The AdaFruit Grand Central M4 and Arduino Due have the same number of IO pins (70)
+on the same physical board layout.  Both will accept the Arduino Ethernet Shield 2, which has an
+SD card slot.
+
+* The Grand Central has an onboard SD card slot, meaning that if we adopt that as the standard means
+of configuration, the Grand Central is totally self sufficient for USB MIDI transport.
+The Arduino Due needs an Ethernet Shield or something similar to provide an SD card slot
+for configuration, even if Ethernet MIDI transport is not being used.
+
+* Both the Grand Central and Due will easily support the maximum number of digital IO inputs that is achievable
+via diode matrix on 64 usable pins (448).
+
+This table summarizes the capabilities and cost of the known suitable boards.
+Both the Grand Central and Arduino Due need an Ethernet Shield ($30, included in the Cost column) if
+Ethernet MIDI transport is needed. The Due needs the Ethernet shield to house the SD card slot regardless of the MIDI transport.
+This makes the Due much more expensive than the Grand Central for USB-MIDI transport.
+
+The Teensy 4.1 costs $31.50 with onboard Ethernet PHY and an SD card slot.  It only needs an ethernet
+connector with magnetics and a carrier board (est. $15), making it the least costly option
+though it has 15 fewer IO pins than the Grand Central and Due.
+
+| Processor              | RAM       | Flash     | Speed     | Dig Pins  | Usable | USBHost | SD Card   | Cost | Remarks
+| ----                   |----       |----       |----       |----       |----    |----     |----       |----  |----
+| AdaFruit Grand Central | 256 KB    | 1 MB      | 120 MHz   | 70        | 65     | YES     | YES       | 70   | Fast, plenty of RAM and pins
+| Arduino Due            | 96 KB     | 512 KB    | 84 MHz    | 70        | 66     | YES     | EthShield | 80   | Fast enough, eth $30
+| Teensy 4.1             | 1 MB      | 7936 KB   | 600 MHz   | 55        | 50?    | YES     | YES       | ~50  | Very fast, Eth PHY onboard
+
+#### Processors Not Considered Suitable and Why
+
+The following are examples of processor modules that are not suitable for use with this firmware.  The principal reason is not
+having enough RAM to accommodate the full slate of MIDI transport libraries, the config parser, and a reasonable number of
+input debounce/filters.
+
+The Arduino Mega 2560 was once the standard for high pin count Arduinos, but it is now very old and has been 
+completely obsoleted by the Arduino Due and AdaFruit Grand Central.
+It is possible - and I did this during the prototyping phase of this project - to make a firmware build that will process
+3-4 keyboards on the Mega 2560, but it has to be completely configured in code, which is not a production-worthy solution.
+Adding the Ethernet library took the capacity down to
+two keyboards, and adding the SD card loadable config support looked like it would further reduce that.
+The Mega 2560 is also fundamentally incapable of doing USB-MIDI transport due to the lack of class-compliant USB
+host support.
+
+The Arduino Leonardo has *extremely* small RAM and a pin count that is just enough to allow scanning a single matrix
+keyboard (61 inputs) and emitting the MIDI over USB.  It would need to have a fixed configuration with a separate build for
+each output MIDI channel.  The Leonardo would be a very expensive solution for a full organ which can have 400-600 inputs that
+would require 7-10 Leonardos.  Due to library RAM/stack needs I think that running the AppleMIDI Ethernet transport
+onto the Leonardo is most likely infeasible as well.
+
+| Processor     | RAM       | Flash     | Speed     | Dig Pins  | Usable | USBHost | SD Card   | Cost     | Remarks
+| ----          |----       |----       |----       |----       |----    |----     |----       |----      |----
+| Ard Mega 2560 | 8 KB      | 256 KB    | 16 MHz    | 70        | 66     | NO      | EthShield | 50 + 30  | Not enough RAM, not fast enough for a full organ
+| Ard Leonardo  | 2.5 KB    | 32 KB     | 16 MHz    | 20        | 18     | YES     | infeasible | 24.     | Insufficient RAM, low pin count
+
+
+### System Voltage 3.3V Considerations
+
+All of the suitable MCU boards are 3.3V systems and cannot take 5V or higher input signals directly.  If you are using the
+conventional active low open-drain inputs via the internal pullups (typical for simple contact closures), you can use
+the 3.3V systems with no extra hardware.  If you need conversion, the four-channel 
+[Noyito Optocouplers](https://www.amazon.com/NOYITO-4-Channel-Optocoupler-Photoelectric-Converter/dp/B07TDYW5FF?th=1)
+and similar producst may be of interest.  For full keyboards you will probably want a higher-density solution.
+
 
 ## Constraints
 
@@ -460,7 +445,6 @@ A theoretical further speedup would be to write code for predefined layouts of c
 This could explicitly use digitalReadFast and digitialWriteFast with no additional overhead, but 
 would be tedious to maintain because the loops would have to be completely unrolled.
 
-
 ### Velocity and Aftertouch Sensing
 
 Velocity sensing for keyboards (not yet implemented) will double the number of contacts and will
@@ -474,6 +458,24 @@ Implementing it just means stacking a 3rd layer of debounce atop the velocity se
 Because of the number of IO pins needed, it will consume 3 8x8 matrix slots.  Thus without
 sharing scan lines or an IO extender you will only be able to scan one such keyboard per Arduino,
 and it will need to be a Due because three 8x8 blocks is too much for a Mega 2560.
+
+# A Short History of the Development
+
+Originally a prototype was implemented using serial MIDI transport that seemed to run quickly
+on the Mega 2560.  However the straightforward code design ended up using 35-40% too much memory,
+even with limited features and no user configurability.
+
+A second version was built that reduced RAM usage by enough to get
+the data for a full slate of four 8x8 diode matrix arrays into about 4KB of RAM.  The time per
+input scanned was about 9-12 usec depending on circumstances.
+Several matrix and block scenarios appeared to run correctly. The debugging of this version 
+used a generic serial MIDI shield with the hardware hacked to attach it to the Mega 2560 SER3 port.
+
+After discovery that the stock Arduino digital IO library routines were eating up an
+excessive amount of CPU, a third version was implemented that uses the digitalWriteFast
+libary to reduce the IO overhead and give a scan time per input of about 7-8 usec
+on the Mega 2560.
+
 
 ## MIDI DIN-5 Serial Cables
 
