@@ -92,6 +92,23 @@ all open source. Tobias Erichsen's [rtpMIDI](https://www.tobias-erichsen.de/soft
 been the standard 3rd party solution for quite some time, though Microsoft's major updates have reportedly
 made occasional restarts needed of late.
 
+### USB Hubs and Cables
+
+When using USB-MIDI transport to the computer, USB hubs are often needed.  I have seen many reports of USB
+connectivity problems that are often - wrongly or rightly - laid to poor USB hubs.  As a long time engineer
+I would say that cables are almost as likely as hubs to cause trouble, and when making a USB system of
+any complexity it's vital to use good hubs and cables alike.  My personal preference (and this is a non compensated
+opinion!) is for Anker hubs and cables.  I don't think I've ever had an Anker hub die, and their braided
+jacket cables - while not 100% indestructible - last much longer than generic ones.
+
+You want braided cables.  The outer braid makes the cable stiffer and provides a lot more protection against
+over-flexing the conductors, a major cause of cable failure.  Cheap thin ultra flexible cables are much
+less robust.
+
+The other thing to look at for cables is the transition between the main cable and the plug housings.
+An abrupt change in diameter from the cable to the housing is bad because it creates a stress concentration
+point that will lead to early failure.  A gradual tapered transition of 10-15mm is much better.
+
 ## State of the Project
 
 The fourth and current prototype adds working Ethernet MIDI transport and replaces the Mega 2560
