@@ -6,17 +6,17 @@
 #include "data.h"
 
 // Minimal-RAM scan block processor based on flash PinBlock defs and separately allocated debouncers.
-// This design allows the slow Mega 2560 with its 8KB of RAMto be used effectively
 //
+// We assume here that pin numbers cannot exceed 255.  The largest module seen so far has 70.
 // It would be nice to have a base class with the core pinBlock based scan logic and a virtual
 // method for what to do for each input.  However, the function call involved causes a
 // noticeable reduction in scan rate.
 class InputScanner {
     public:
     static void scanPinBlocksSingleContact() {
-        for (int i = 0; i < nPinBlocks; i++) {
+        for (uint16_t i = 0; i < nFlashPinBlocks; i++) {
             // copying the PinBlock struct into RAM is almost twice as slow as reading directly from flash; don't do it
-            const PinBlock_t * pb = &(gPinBlocks[i]);
+            const PinBlock_t * pb = &(gFlashPinBlocks[i]);
             midi::DataByte noteNum = pb->baseMidiNoteNum;
             midi::DataByte noteLim = pb->baseMidiNoteNum + pb->numCtrls;        // in case matrix has a non-full select row
             int dbIndx = gDebouncerBases[i];
@@ -31,14 +31,14 @@ class InputScanner {
             // process the pin block
             if (pb->useSelect) {
                 // diode matrix - read pins loop inside of select pins loop
-                int clim = pb->selectBasePin + pb->numSelectPins;
-                int rlim = pb->readBasePin + pb->numReadPins;
-                for (int selPin = pb->selectBasePin; selPin < clim; selPin++) {
+                uint8_t clim = pb->selectBasePin + pb->numSelectPins;
+                uint8_t rlim = pb->readBasePin + pb->numReadPins;
+                for (uint8_t selPin = pb->selectBasePin; selPin < clim; selPin++) {
                     fastwrite(selPin, pb->activeLow ? LOW : HIGH);
 
                     // scan the read pins for this select pin
-                    for (int readPin = pb->readBasePin; (readPin < rlim) && (noteNum < noteLim); readPin++) {
-                        uint8_t inp = fastread(readPin);
+                    for (uint8_t readPin = pb->readBasePin; (readPin < rlim) && (noteNum < noteLim); readPin++) {
+                        int inp = fastread(readPin);
 
 #if LOG_SCAN_SEQUENCE
                         // alt scan action to log MIDI channel, noteNum, selectPin, readPin, dbIndx
@@ -67,8 +67,8 @@ class InputScanner {
             }
             else {
                 // parallel non-matrix inputs - single loop on read pins
-                int rlim = pb->readBasePin + pb->numReadPins;
-                for (int readPin = pb->readBasePin; readPin < rlim; readPin++) {
+                uint8_t rlim = pb->readBasePin + pb->numReadPins;
+                for (uint8_t readPin = pb->readBasePin; readPin < rlim; readPin++) {
                     int inp = fastread(readPin);
 #if LOG_SCAN_SEQUENCE
                         // alt scan action to log MIDI channel, noteNum, selectPin, readPin, dbIndx
@@ -80,6 +80,13 @@ class InputScanner {
             }
 
         }
+    }
+
+    static void scanAnalogPinBlocks() {
+        for (uint16_t i; i < nFlashPinBlocksAnalogRead; i++) {
+
+        }
+
     }
 
     // scans all pins with fastread but takes no action - reads are safe even if pin is configured as output

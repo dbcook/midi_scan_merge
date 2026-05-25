@@ -31,8 +31,13 @@ powerful processors.
 #if defined(ARDUINO_AVR_MEGA2560)
 #include <MemoryFree.h>
 #elif defined(ARDUINO_SAM_DUE)
-// MemoryFree library is arduino specific
+// MemoryFree library is AVR specific
 #endif
+
+// Due: This brings ignorable compile warnings stemming from -Wreorder in Wire.h - members initialized in ctor in different order than declared.
+// Apparently only affects SAM processors and not SAMD, we get no warnings on Grand Central.
+#include<LiquidCrystal_I2C.h>
+
 #include <MIDI.h>
 #include <AppleMIDI.h>
 
@@ -49,6 +54,7 @@ powerful processors.
 #include "debouncer.h"
 #include "pin_list.h"
 #include "scanner.h"
+#include "lcd_display.h"
 
 // MIDI channel remapping callbacks
 // We wouldn't need a separate handler per serial interface if we could introspect 
@@ -252,10 +258,10 @@ void startMidi()
 
 void configurePins() {
     pinMode(LED_BUILTIN, OUTPUT);
-
+#if 0
     // single contact pin blocks
-    for (int i = 0; i < nPinBlocks; i++) {
-        const PinBlock_t * pb = &gPinBlocks[i];
+    for (int i = 0; i < nFlashPinBlocks; i++) {
+        const PinBlock_t * pb = &gFlashPinBlocks[i];
 
         if (pb->useSelect) {
             for (uint8_t selPin = pb->selectBasePin; selPin < pb->selectBasePin + pb->numSelectPins; selPin++) {
@@ -267,35 +273,100 @@ void configurePins() {
             pinMode(readPin, pb->activeLow ? INPUT_PULLUP : INPUT);
         }
     }
-    // multi-contact pin blocks
-    for (int i = 0; i < nPinBlocksMulti; i++) {
-        const PinBlockMulti_t * pb = &gPinBlocksMulti[i];
-        int nc = pb->numContacts;
-        if (pb->useSelect) {
-            // diode matrix digital inputs block
+#endif
+    //
+    // multi-contact digital input pin blocks
+    //
+    // new code to work from gMemPinBlocksDigital and gMemPinBlocksAnalog
+    
+    for (auto pbi = gPinBlocksDigital.begin(); pbi != gPinBlocksDigital.end(); pbi++) {
+        int nc = pbi->numContacts;
+        if (pbi->useSelect) {
+            // diode matrix
             for (int j = 0; j < nc; j++) {
-                const PbPinInfo_t * pbi = &(pb->pbPinInfo[j]);
-                for (uint8_t selPin = pbi->selectBasePin; selPin < pbi->selectBasePin + pb->numSelectPins; selPin++) {
+                const PbPinInfo_t * pbinf = &(pbi->pbPinInfo[j]);
+                for (uint8_t selPin = pbinf->selectBasePin; selPin < pbinf->selectBasePin + pbi->numSelectPins; selPin++) {
                     pinMode(selPin, OUTPUT);
-                    digitalWrite(selPin, pb->activeLow ? HIGH : LOW);
+                    digitalWrite(selPin, pbi->activeLow ? HIGH : LOW);
+                    AM_DBG(F("Pin"), selPin, F("Output"));
                 }
-                for (uint8_t readPin = pbi->readBasePin; readPin < pbi->readBasePin + pb->numReadPins; readPin++) {
-                    pinMode(readPin, pb->activeLow ? INPUT_PULLUP : INPUT);
+                for (uint8_t readPin = pbinf->readBasePin; readPin < pbinf->readBasePin + pbi->numReadPins; readPin++) {
+                    pinMode(readPin, pbi->activeLow ? INPUT_PULLUP : INPUT);
+                    AM_DBG(F("Pin"), readPin, F("Pullup"));
                 }
             }
         }
         else {
             // parallel digital inputs block
             for (int j = 0; j < nc; j++) {
-                const PbPinInfo_t * pbi = &(pb->pbPinInfo[j]);
-                for (uint8_t readPin = pbi->readBasePin; readPin < pbi->readBasePin + pb->numReadPins; readPin++) {
-                    pinMode(readPin, pb->activeLow ? INPUT_PULLUP : INPUT);
+                const PbPinInfo_t * pbinf = &(pbi->pbPinInfo[j]);
+                for (uint8_t readPin = pbinf->readBasePin; readPin < pbinf->readBasePin + pbi->numReadPins; readPin++) {
+                    pinMode(readPin, pbi->activeLow ? INPUT_PULLUP : INPUT);
+                    AM_DBG(F("Pin"), readPin, F("Pullup"));
                 }
             }
         }
     }
+    //
+    // analog input pin blocks - set as input with pullup disabled
+    // The analog pins merely need to not be in output mode - analogRead and digitalRead will both work on an analog pin in input mode.
+    // We disable the pullup here in case somehow we enter with the pullup enabled.
+    // analogRead will still work if the pullup is on but the readings will be inaccurate
+    //
+    for (auto pbi = gPinBlocksAnalog.begin(); pbi != gPinBlocksAnalog.end(); pbi++) {
+        for (int anPin = pbi->basePin; anPin < pbi->basePin + pbi->numPins; anPin++) {
+            pinMode(anPin, INPUT);
+            AM_DBG(F("Pin"), anPin, F("AnInput"));
+        }
+    }
+    
 }
 
+// Startup for the optional 20x4 LCD display
+// This is all harmless if the LCD is not connected as long as nothing else is on I2C address 0x27
+// IMPORTANT: Any LCD messages to be displayed during normal MIDI scanning operation need to be done in a background thread
+//  due to significant hard waits.  Crash messages can and should be done in the foreground.
+// TODO make into an LCD handling class since we'll want a ringbuffer deque of message objects queued for the background thread
+//
+
+// This just instantiates a global object.
+// TODO make this a member in our class so we don't consume the memory if not configured.
+// TODO The I2C takes 2 pins - in Mega format large-IO boards these are digital 20-21.
+LcdDisplay * gLcd = new LcdDisplay();
+void initLCD() {
+    gLcd->init();
+    // Display initial startup banner
+    gLcd->lcdMessage("DBCook MIDI ", 0, 0);
+    gLcd->lcdMessage(gProdVersion);
+}
+
+void showStartupBannerOnLcd() {
+    // leave row 0 alone for init msg with version
+
+    // Line 1: configuration - enabled features etc
+    gLcd->pLCD->setCursor(0, 1);
+    if (gUseEthernetMidi) {
+        gLcd->lcdMessage("ETH ");
+    }
+    if (gUseUSBMidi) {
+        gLcd->lcdMessage("USB ");
+    }
+    if (gUseSerialMidi) {
+        gLcd->lcdMessage("SER ");
+    }
+
+    // Line 2: pin counts for various input types
+    gLcd->lcdMessage("Dig ", 0, 2);
+    gLcd->lcdMessage(String(gPinBlocksDigital.size()).c_str());
+    gLcd->lcdMessage(" ");
+    gLcd->lcdMessage(String(calcNumDigitalInputs()).c_str());
+    gLcd->lcdMessage(" An ");
+    gLcd->lcdMessage(String(gPinBlocksAnalog.size()).c_str());
+    gLcd->lcdMessage(" ");
+    gLcd->lcdMessage(String(calcNumAnalogInputs()).c_str());
+
+    // Lline 4: runtime status, not written here
+}
 
 void setup() 
 {
@@ -311,12 +382,21 @@ void setup()
     AM_DBG(gProdLicense);
 #endif
 
+    initLCD();
+
+    initMemPinBlocks();
     configurePins();
     
+
+    // *** fix these to work from gMemPinBlocks
     initDebouncers();
     initDebouncerBases();
 
+    showStartupBannerOnLcd();
+
     startMidi();
+
+    // Display as-configured startup banner
 }
 
 // local statics for the main loop

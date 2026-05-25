@@ -7,14 +7,15 @@
 // MUST be included after AppleMidi.h since it nukes AM_DBG symbols unless we let it totally take over the console port.
 // All console code vanishes when USE_DEBUG_PRINT is false
 // If USE_DEBUG_PRINT is true, the MIDI shield (if present) must not use Serial but must use Serial1 - Serial3
-// ALWAYS use F("msg") to send the literals to flash instead of RAM
+// ALWAYS use F("msg") to store the literals to flash instead of RAM
 
 #define USE_DEBUG_PRINT true
 
 #if USE_DEBUG_PRINT
-const unsigned long consoleBaudRate = 115200;
 
-// *** platform difference: on Grand Central we need Serial_ (from USBAPI.h) but on Due we need HardwareSerial (hardwareserial.h)
+const unsigned long consoleBaudRate = 115200;   // must match monitor_speed in platformio.h
+
+// On Grand Central we need class Serial_ (from USBAPI.h) but on Due we need HardwareSerial (hardwareserial.h)
 // Platform IO processor symbols
 //     Grand Central: ARDUINO_ADAFRUIT_GRAND_CENTRAL_M4 (we have to define this in build_flags in platformio.ini)
 //     Arduino Due  : ARDUINO_SAM_DUE

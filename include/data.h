@@ -122,5 +122,22 @@ EXTERN int gEthConnections
 EXTERN DebouncerMidiNoteSingleContact gDebouncers[MAX_DEBOUNCERS];
 
 // RAM based global array of debouncer base index for each pin block
-EXTERN int gDebouncerBases[nPinBlocks];
+EXTERN int gDebouncerBases[nFlashPinBlocks];
 
+EXTERN bool gUseEthernetMidi
+#ifdef GEN_GLOBALS
+    = ETHERNET_MIDI_CONNECT
+#endif
+;
+
+EXTERN bool gUseSerialMidi
+#ifdef GEN_GLOBALS
+    = SERIAL_MIDI_INPUT || SERIAL_MIDI_OUTPUT
+#endif
+;
+
+EXTERN bool gUseUSBMidi
+#ifdef GEN_GLOBALS
+    = USB_MIDI_CONNECT
+#endif
+;

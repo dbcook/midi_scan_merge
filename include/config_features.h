@@ -166,3 +166,14 @@ EXTERN uint8_t gEthernetMac[]
 ;
 
 #endif // ETHERNET_MIDI_CONNECT
+
+//---------------------------------------
+// USB MIDI Interfaces
+//---------------------------------------
+
+#define USB_MIDI_CONNECT false
+
+#if USB_MIDI_CONNECT
+
+#endif
+

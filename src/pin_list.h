@@ -5,6 +5,7 @@
 #include "data.h"
 #include "midi_instruments.h"
 #include "debouncer.h"
+#include "ArrayList.h"
 
 
 
@@ -80,14 +81,22 @@ typedef struct PinBlockAnalogRead {
 // Include specific configuration
 #include "config_scan_pins.h"
 
+// We can take compile time sizes of the hardcoded test flash pinblock groups
+const int nFlashPinBlocks = sizeof(gFlashPinBlocks) / sizeof(PinBlock_t);
+const int nFlashPinBlocksMulti = sizeof(gFlashPinBlocksMulti) / sizeof(PinBlockMulti_t);
+const int nFlashPinBlocksAnalogRead = sizeof(gFlashPinBlocksAnalogRead) / sizeof(PinBlockAnalogRead_t);
 
-const int nPinBlocks = sizeof(gPinBlocks) / sizeof(PinBlock_t);
-const int nPinBlocksMulti = sizeof(gPinBlocksMulti) / sizeof(PinBlockMulti_t);
-const int nPinBlocksAnalogRead = sizeof(gPinBlocksAnalogRead) / sizeof(PinBlockAnalogRead_t);
+// declare the RAM based pinblock lists
+EXTERN ArrayList<PinBlockMulti_t> gPinBlocksDigital;
+EXTERN ArrayList<PinBlockAnalogRead_t> gPinBlocksAnalog;
+
+void initMemPinBlocks();
 
 int calcPinBlockSize(int pbIndx);
 int calcDebouncerBase(int pbIndx);
 void initDebouncerBases();
 void initDebouncers();
+int calcNumDigitalInputs();
+int calcNumAnalogInputs();
 int calcDebouncerIndx(int pbIndx, int selectPin, int readPin);
 int getPinBlockIndxFromDebouncerIndx( int debIndx );
