@@ -20,16 +20,28 @@
 #define MAX_DEBOUNCERS 448
 
 //---------------------------------------
-// Hardware feature flags
+// Configuration struct
 //---------------------------------------
 
-// Whether to write to the I2C LCD display
-// OK to have this enabled even if the LCD is not attached, but there will be a minor scan performance loss of ~2%
-EXTERN bool gUseLCD
+typedef struct runtimeConfig {
+    bool useLcd;           // whether to write to LCD display.  OK even if LCD is not attached but with ~1% performance loss.
+    bool logScanSequence;  // true disables regular scanning and logs the whole sequence to console every 10 sec
+    bool useEthernet;      // true if we run Ethernet AppleMIDI session connect listener
+    char ethernetMac[6];   // Ethernet Mac Address
+
+} runtimeConfig_t;
+
+EXTERN runtimeConfig_t gConfig
 #ifdef GEN_GLOBALS
-    = true
+= { 
+    true,                                     // use LCD
+    false,                                    // scan sequence logging (DISABLES REGULAR SCAN)
+    true,                                     // run Ethernet service
+    { 0xDE, 0xAD, 0xBE, 0xEF, 0xF0, 0x0D }    // Ethernet MAC address
+  }
 #endif
 ;
+
 
 //---------------------------------------
 // Serial MIDI Interfaces
@@ -66,7 +78,6 @@ EXTERN bool gUseLCD
 #endif // SERIAL_MIDI_OUTPUT
 
 // Debugging feature to log the scanning sequence to console.  Disables regular scanning; must be false for production builds.
-// Not a runtime switch due to performance loss
 #if PRODUCTION_BUILD
 #define LOG_SCAN_SEQUENCE false
 #else

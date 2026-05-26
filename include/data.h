@@ -6,6 +6,7 @@
 
 #include "glob_gen.h"
 #include "debug.h"
+#include "deque.h"
 
 // USE_EXT_CALLBACKS is necessary to catch any MIDI events
 // Since it only takes about 150 bytes of flash we turn it on by default.
@@ -121,7 +122,8 @@ EXTERN int gEthConnections
 EXTERN DebouncerMidiNoteSingleContact gDebouncers[MAX_DEBOUNCERS];
 
 // RAM based global array of debouncer base index for each pin block
-EXTERN int gDebouncerBases[nFlashPinBlocks];
+//EXTERN int gDebouncerBases[nFlashPinBlocks];
+EXTERN Deque<int> gDebouncerBases;
 
 EXTERN bool gUseEthernetMidi
 #ifdef GEN_GLOBALS

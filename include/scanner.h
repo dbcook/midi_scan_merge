@@ -13,6 +13,7 @@
 // noticeable reduction in scan rate.
 class InputScanner {
     public:
+#if 0
     static void scanPinBlocksSingleContact() {
         for (uint16_t i = 0; i < nFlashPinBlocks; i++) {
             // copying the PinBlock struct into RAM is almost twice as slow as reading directly from flash; don't do it
@@ -81,9 +82,72 @@ class InputScanner {
 
         }
     }
+#endif
+
+    // scans all new style in-memory digital pinBlocks
+    static void scanDigitalPinBlocks() {
+        for (size_t i = 0; i < gPinBlocksDigital.size(); i++) {
+            const PinBlockMulti_t * pb = &(gPinBlocksDigital[i]);
+            midi::DataByte noteNum = pb->baseMidiNoteNum;
+            midi::DataByte noteLim = pb->baseMidiNoteNum + pb->numCtrls;        // in case matrix has a non-full select row
+            int dbIndx = gDebouncerBases[i];
+            if (gConfig.logScanSequence) {
+            }
+            if (pb->useSelect) {
+                // matrix, 1-3 contacts
+                if (pb->numContacts == 1) {
+                    const PbPinInfo_t * pbi = &(pb->pbPinInfo[0]);              // contains base select and base read pin
+                    uint8_t clim = pbi->selectBasePin + pb->numSelectPins;
+                    uint8_t rlim = pbi->readBasePin + pb->numReadPins;
+                    for (auto selPin = pbi->selectBasePin; selPin < clim; selPin++) {
+                        fastwrite(selPin, pb->activeLow ? LOW : HIGH);
+                        for (auto readPin = pbi->readBasePin; (readPin < rlim) && (noteNum < noteLim); readPin++) {
+                            if (gConfig.logScanSequence) {
+                                AM_DBG(F("Ch"), pb->midiOutChan, F("Nt"), noteNum, F("Sel"), selPin, F("Rd"), readPin, F("Db"), dbIndx);
+                            }
+                            int inp = fastread(readPin);
+                            bool istate = (pb->activeLow) ? !inp : inp;
+                            if (istate) {
+                                gDebouncers[dbIndx].stateSampleActive();
+                            }
+                            else {
+                                gDebouncers[dbIndx].stateSampleInactive();
+                            }
+                            // Alternate per-read-pin handlers that were useful for testing
+                            //gDebouncers[dbIndx].stateSampleActive();    // causes initial burst of noteOn for all notes
+
+                            dbIndx++;
+                            noteNum++;
+                        }
+                    }
+                }
+            }
+            else {
+                // parallel - single contact only?
+                if (pb->numContacts == 1) {
+                    const PbPinInfo_t * pbi = &(pb->pbPinInfo[0]);              // contains base select and base read pin
+                    uint8_t rlim = pbi->readBasePin + pb->numReadPins;
+                    for (auto readPin = pbi->readBasePin; (readPin < rlim) && (noteNum < noteLim); readPin++) {
+                        int inp = fastread(readPin);
+                        bool istate = (pb->activeLow) ? !inp : inp;
+                        if (istate) {
+                            gDebouncers[dbIndx].stateSampleActive();
+                        }
+                        else {
+                            gDebouncers[dbIndx].stateSampleInactive();
+                        }
+                        dbIndx++;
+                        noteNum++;
+                    }
+                }
+            }
+
+        }
+
+    }
 
     static void scanAnalogPinBlocks() {
-        for (uint16_t i; i < nFlashPinBlocksAnalogRead; i++) {
+        for (uint16_t i; i < gPinBlocksAnalog.size(); i++) {
 
         }
 

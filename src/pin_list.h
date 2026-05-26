@@ -22,6 +22,7 @@
 // TODO: Implmement hardcoded discontiguous diode matrix pin blocks covering pins 2-3, 5-9, 11-12, 16-53 (cannot use 4, 10, 13, 14-15)
 // TODO: Implement double-contact pin blocks.
 //
+#if 0
 typedef struct PinBlock {
     bool useSelect;                 // true if block is for a diode matrix using select pins
     bool activeLow;                 // true if input signals are active low
@@ -35,6 +36,7 @@ typedef struct PinBlock {
     uint8_t attackDebounceMsec;     // debounce time for attack
     uint8_t releaseDebounceMsec;    // debounce time for release
 } PinBlock_t;
+#endif
 
 // new struct with a union for multi-contact blocks
 // this will replace PinBlock_t soon
@@ -82,7 +84,9 @@ typedef struct PinBlockAnalogRead {
 #include "config_scan_pins.h"
 
 // We can take compile time sizes of the hardcoded test flash pinblock groups
+#if 0
 const int nFlashPinBlocks = sizeof(gFlashPinBlocks) / sizeof(PinBlock_t);
+#endif
 const int nFlashPinBlocksMulti = sizeof(gFlashPinBlocksMulti) / sizeof(PinBlockMulti_t);
 const int nFlashPinBlocksAnalogRead = sizeof(gFlashPinBlocksAnalogRead) / sizeof(PinBlockAnalogRead_t);
 
