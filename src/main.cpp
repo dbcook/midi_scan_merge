@@ -409,6 +409,13 @@ void loop()
         lastMillis = millis();
         digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
         AM_DBG(F("rate: "), loopCount);
+
+        // show scan rate in LRC of display - allow 5 chars
+        gLcd->pLCD->setCursor(15, 3);
+        char buf[13];
+        itoa(loopCount, buf, 10);
+        gLcd->lcdMessage(buf);
+
 #if defined(ARDUINO_SAM_DUE)
         // output free memory - TBD
 #endif
