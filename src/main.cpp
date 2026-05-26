@@ -372,10 +372,10 @@ void setup()
     while( !Console ) {
         ;
     }
+#endif
     AM_DBG(gProdName, gProdVersion);
     AM_DBG(gProdCopyright);
     AM_DBG(gProdLicense);
-#endif
 
     if (gConfig.useLcd) {
         initLCD();

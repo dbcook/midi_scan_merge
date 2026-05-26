@@ -1,6 +1,7 @@
 #pragma once
 #include <Arduino.h>
 #include "glob_gen.h"
+#include <MIDI.h>
 
 /*
     Configure global features for the MIDI scanner / merger / decoder
