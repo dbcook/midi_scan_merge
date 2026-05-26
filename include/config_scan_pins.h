@@ -2,15 +2,17 @@
 #include <Arduino.h>
 
 //-----------------------------------------------------------------------
-// Configures the scanning of input pins
+// Scanning configuration for digital and analog input pins
 //-----------------------------------------------------------------------
 // Here is where you specify the input pins layout for the scanner.
-// We currently support diode matrix arrays as well as linear (aka parallel) blocks of pins.
+// We currently support diode matrix arrays as well as linear (aka parallel) blocks of digital pins.
 //
-// Analog input support is planned but not yet implemented.
+// Analog input support is planned but not yet fully implemented.
 //
-// The pin ranges you specify must be contiguous.  In diode matrix pinBlocks, the scan pin range
-// and the read pins range must be individually contiguous, but they don't have to be adjacent.
+// The read pin ranges you specify must be contiguous, whether for parallel or diode matrix inputs.
+// Discontiguous pin ranges for the select pins in a diode matrix can be supported by defining a separate
+// pin block for each clump of adjacent select pins.  The range of read pins must always be contiguous
+// since that is crucial to scanning efficiency.
 //
 // PINS YOU MUST AVOID
 // You CANNOT use any of the following pins in any scan range (subject to some conditions):
@@ -28,6 +30,13 @@
 // scan pins or read pins (but not both!) as long as everything has the same polarity.  This enables a theoretical maximum
 // of seven 8x8 diode matrix blocks on one Grand Central M4 or Arduino Due.
 //
+// To create a general flash configuration that serve a variety of configurations, keep in mind that
+// there is no harm in scanning inputs that aren't connected.  On a Grand Central the processing is so
+// fast that the extra work doesn't matter.  You could set up a configuration with 4 8x8 matrix keyboards
+// using shared scan lines (40 inputs) plus a 4x8 pedalboard (12 inputs) and a few analog inputs for
+// swell pedals, and use that for 1-4 keyboards, any 27-32 note pedalboard (or none), and 0 to half a
+// dozen expression pedals.
+//
 // CAVEAT: there are various logical constraints on the pinBlock definitions that are not
 // enforced in the code (yet).  These include:
 //      HW configuration based forbidden pins as listed above must not be used in any pinBlock for any purpose
@@ -37,19 +46,15 @@
 //      No pin range can extend beyond pin 69 on a large format Arduino board (Grand Central, Due, etc.)
 //      If the note ranges for 2 groups overlap, then each group must be sent to a different channel.
 //
-// Discontiguous pin ranges for a diode matrix are not yet supported.  However you can map
-// arbitrary pins as parallel inputs just by creating multiple parallel blocks that are
-// individually contiguous.
-//
 // For each group, in addition to the Arduino pin ranges you get to specify:
 //   The total number of notes to scan (for diode matrix where you likely will use 61 notes out of 64 in an 8x8 matrix)
 //   The base MIDI note number for the group
 //   The MIDI output channel for the NoteOn and NoteOff messages.  
 //
-// This file must define a const and fully initialized array of PinBlock_t named "gFlashPinBlocks". 
-// To see the PinBlock_t struct declaration, right-click PinBlock_t below and use "go to definition"
+// This file must define a const and fully initialized array of PinBlockMulti_t named "gFlashPinBlocksMulti". 
+// To see the PinBlockMulti_t struct declaration, right-click PinBlockMulti_t below and use "go to definition"
 //
-// When useSelect is false, you should set the select base pin to LED_BUILTIN and the number of
+// When useSelect is false (parallel), you should set the select base pin to LED_BUILTIN and the number of
 // select pins to 0.  By design the select range will not be written when useSelect == false,
 // but even if some bug causes the first select to be written somehow, it will just blink the LED.
 //
