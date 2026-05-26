@@ -73,7 +73,7 @@
 //      flash - copy in hardcoded example/test definitions declared here
 //      config - read YAML config from SD card
 
-#define DIGITAL_PINBLOCK_SOURCE flash
+#define PIN_CONFIG_SOURCE flash
 #define ANALOG_PINBLOCK_SOURCE flash
 
 

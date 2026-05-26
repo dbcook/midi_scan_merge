@@ -44,6 +44,7 @@ int calcNumAnalogInputs() {
     return sum;
 }
 
+
 // traverse the pinBlocks and init their debouncers accordingly
 // *** need to enforce constraint during pinBlock readin that (baseNoteNum + numCtrls - 1) <= MAX_MIDI_NOTE_NUMBER (128)
 void initDebouncers() {
@@ -64,32 +65,28 @@ void initDebouncers() {
     }
 }
 
+
 void initAnalogInputFilters() {
 
 }
 
-// set up in-memory ArrayList for each pinblock group with switchable source
+// Set up in-memory list for each pinblock group with switchable source
 //      hardcoded defs in flash
 //      config read from SD card
+// The config source has to be a compile time switch else the eggs and chickens get in a shouting match
+// TODO switch to Deque for consistency
 void initMemPinBlocks() {
 
-#if DIGITAL_PINBLOCK_SOURCE == flash
+#if PIN_CONFIG_SOURCE == flash
     for (size_t i = 0; i < nFlashPinBlocksMulti; i++) {
         const PinBlockMulti_t * pbsrc = &gFlashPinBlocksMulti[i];
         gPinBlocksDigital.add(*pbsrc);
     }
-#elif DIGITAL_PINBLOCK_SOURCE == config
-    // *** parse YAML from the SD card
-#else
-#error Unsupported pinblock source!
-#endif
-
-#if ANALOG_PINBLOCK_SOURCE == flash
     for (size_t i = 0; i < nFlashPinBlocksAnalogRead; i++) {
         const PinBlockAnalogRead_t * pbsrc = &gFlashPinBlocksAnalogRead[i];
         gPinBlocksAnalog.add(*pbsrc);
     }
-#elif DIGITAL_PINBLOCK_SOURCE == config
+#elif PIN_CONFIG_SOURCE == config
     // *** parse YAML from the SD card
 #else
 #error Unsupported pinblock source!
@@ -97,25 +94,9 @@ void initMemPinBlocks() {
 
 }
 
-// sped up somewhat by computing the base debouncer index for each pin block at startup for 32-40 bytes of RAM
-// cannot precompute for every pin - too much RAM
-// currently unused, new scan loop uses the precomputed bases plus an incremental index
-#if 0
-int calcDebouncerIndx(int pbIndx, int selectPin, int readPin) {
-    int dbIndx = gDebouncerBases[pbIndx];
-    const PinBlockMulti_t *pb = &(gPinBlocksDigital[pbIndx]);
-    if (pb->useSelect) {
-        dbIndx += (selectPin - pb->selectBasePin) * pb->numReadPins + (readPin - pb->readBasePin);
-    }
-    else {
-        dbIndx += readPin - pb->readBasePin;
-    }
-    return dbIndx;
-}
-#endif
 
-
-// this is a bit expensive as we have to traverse the debouncer bases list (but it's very short)
+// Inverse find of pinBlock given debouncer index
+// A bit expensive as we have to traverse the (fortunately short) debouncer bases list
 int getPinBlockIndxFromDebouncerIndx( int debIndx ) {
     size_t i = 0;
 

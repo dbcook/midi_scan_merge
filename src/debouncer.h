@@ -124,4 +124,3 @@ class DebouncerMidiNoteSingleContact : public DebouncerBase {
         void deactivateControl();
 
 };
-
