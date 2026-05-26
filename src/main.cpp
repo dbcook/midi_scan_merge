@@ -384,10 +384,8 @@ void setup()
     initMemPinBlocks();
     configurePins();
     
-
     initDebouncers();
-    initDebouncerBases();
-
+    
     if (gConfig.useLcd) {
         showStartupBannerOnLcd();
     }

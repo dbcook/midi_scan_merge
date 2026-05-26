@@ -51,6 +51,8 @@ void initDebouncers() {
     for (int i = 0; i < MAX_DEBOUNCERS; i++) {
         gDebouncers[i].reset();
     }
+    // Make sure debouncer block bases are set
+    initDebouncerBases();
     // traverse pinBlocks and poke noteNum and midiOutChan into the debouncers
     for (size_t i = 0; i < gPinBlocksDigital.size(); i++) {
         int dbase = gDebouncerBases[i];
