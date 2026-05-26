@@ -43,6 +43,9 @@ class LcdDisplay {
         // a few wrappers for common manipulations from underlying lib
         void init(bool backlight = true) {
             pLCD->init();
+            // let's crank up the clock (experimental, might need 4.7k pullups on SCL and SDA)
+            // works fine at 200 KHz (2x normal) with no pullups
+            Wire.setClock(200000);
             if (backlight) {
                 pLCD->backlight();
             }

@@ -20,6 +20,18 @@
 #define MAX_DEBOUNCERS 448
 
 //---------------------------------------
+// Hardware feature flags
+//---------------------------------------
+
+// Whether to write to the I2C LCD display
+// OK to have this enabled even if the LCD is not attached, but there will be a minor scan performance loss of ~2%
+EXTERN bool gUseLCD
+#ifdef GEN_GLOBALS
+    = true
+#endif
+;
+
+//---------------------------------------
 // Serial MIDI Interfaces
 //---------------------------------------
 

@@ -322,16 +322,15 @@ void configurePins() {
 
 // Startup for the optional 20x4 LCD display
 // This is all harmless if the LCD is not connected as long as nothing else is on I2C address 0x27
-// IMPORTANT: Any LCD messages to be displayed during normal MIDI scanning operation need to be done in a background thread
-//  due to significant hard waits.  Crash messages can and should be done in the foreground.
+// IMPORTANT: Any LCD messages to be displayed during normal MIDI scanning operation need to be done either in a background thread
+// or at low frequency due to significant hard waits.  Crash messages can and should be done in the foreground.
 // TODO make into an LCD handling class since we'll want a ringbuffer deque of message objects queued for the background thread
 //
 
-// This just instantiates a global object.
-// TODO make this a member in our class so we don't consume the memory if not configured.
-// TODO The I2C takes 2 pins - in Arduino large-format boards these are digital 20-21.
+// NOTE: The I2C consumes 2 pins - in Arduino large-format boards these are digital 20-21.
 LcdDisplay * gLcd = new LcdDisplay();
 void initLCD() {
+    if (!gUseLCD) return;
     gLcd->init();
     // Display initial startup banner
     gLcd->lcdMessage("DBCook MIDI ", 0, 0);
@@ -339,6 +338,7 @@ void initLCD() {
 }
 
 void showStartupBannerOnLcd() {
+    if (!gUseLCD) return;
     // leave row 0 alone for init msg with version
 
     // Line 1: configuration - enabled features etc
@@ -380,7 +380,9 @@ void setup()
     AM_DBG(gProdLicense);
 #endif
 
-    initLCD();
+    if (gUseLCD) {
+        initLCD();
+    }
 
     initMemPinBlocks();
     configurePins();
@@ -390,7 +392,9 @@ void setup()
     initDebouncers();
     initDebouncerBases();
 
-    showStartupBannerOnLcd();
+    if (gUseLCD) {
+        showStartupBannerOnLcd();
+    }
 
     startMidi();
 
@@ -410,11 +414,14 @@ void loop()
         digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
         AM_DBG(F("rate: "), loopCount);
 
-        // show scan rate in LRC of display - allow 5 chars
-        gLcd->pLCD->setCursor(15, 3);
-        char buf[13];
-        itoa(loopCount, buf, 10);
-        gLcd->lcdMessage(buf);
+        // this takes about 3 msec of blocking foreground time, that's OK if it doesn't increase much
+        if (gUseLCD) {
+            // show scan rate in LR corner of display - allow 5 chars
+            gLcd->pLCD->setCursor(15, 3);
+            char buf[13];
+            itoa(loopCount, buf, 10);
+            gLcd->lcdMessage(buf);
+        }
 
 #if defined(ARDUINO_SAM_DUE)
         // output free memory - TBD
