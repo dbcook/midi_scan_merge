@@ -35,6 +35,7 @@
 //      Analog pins must be in range for the specific processor type
 //      Maximum MIDI note number must be observed: (base note number + number of notes - 1) must not exceed 127
 //      No pin range can extend beyond pin 69 on a large format Arduino board (Grand Central, Due, etc.)
+//      If the note ranges for 2 groups overlap, then each group must be sent to a different channel.
 //
 // Discontiguous pin ranges for a diode matrix are not yet supported.  However you can map
 // arbitrary pins as parallel inputs just by creating multiple parallel blocks that are
@@ -44,7 +45,6 @@
 //   The total number of notes to scan (for diode matrix where you likely will use 61 notes out of 64 in an 8x8 matrix)
 //   The base MIDI note number for the group
 //   The MIDI output channel for the NoteOn and NoteOff messages.  
-//      If the note ranges for 2 groups overlap, then each group must be sent to a different channel.
 //
 // This file must define a const and fully initialized array of PinBlock_t named "gFlashPinBlocks". 
 // To see the PinBlock_t struct declaration, right-click PinBlock_t below and use "go to definition"
@@ -58,15 +58,9 @@
 // hit they will be writing to pins that should not be written to, causing
 // seriously unexpected and hard to analyze behavior.  I've seen that sort of thing before...)
 //
-// Normally activeLow should be true for contact closures against a pullup resistor.
+// Normally activeLow should be true for open-drain contact closures against a pullup resistor.
 //
 // You can use constants from midi_instruments.h and elsewhere as desired.
-//
-//
-// If you don't have a MIDI serial shield you can freely use all pins from D14 to D53 as well as all 16 analog pins,
-// giving 56 readily available inputs, plus 3 short sequences (D2-3, D5-9, D11-12) that could be defined as
-// parallel blocks.  That will allow at least three 8x8 diode matrix keyboards (up to six with shared scan pin ranges
-// on a Due/Teensy) plus 9 discretes (pistons etc.).
 //
 
 // Where to get the PinBlock definitions.  Choices are:
@@ -74,10 +68,8 @@
 //      config - read YAML config from SD card
 
 #define PIN_CONFIG_SOURCE flash
-#define ANALOG_PINBLOCK_SOURCE flash
 
-
-// A few constants to make the block defs more readable
+// Constants to make the block defs more readable
 #define DIODE_MATRIX true
 #define PARALLEL false
 #define ACTIVE_LOW true
@@ -87,68 +79,23 @@
 #define ATTACK_DEBOUNCE_MSEC 20
 #define RELEASE_DEBOUNCE_MSEC 5
 
-// A single 8x8 keyboard matrix, 61 notes, starting on pin 16, output to channel 8
-// const PinBlock_t gFlashPinBlocks[]  = {
-//     {DIODE_MATRIX,  ACTIVE_LOW, 16, 8, 24, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 8, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC}
-// };
-
-// This example has the maximum number of 8x8 matrix blocks that a processor with 64 usable digital pins can handle
-// These are all duplicates so don't blindly use this without a more careful allocation
-// A Due can scan four at 0.9 KHz and seven at 540 Hz which is perfectly good
-// A Grand Central scans seven 8x8's at 2.3 KHz.
-#if 0
-const PinBlock_t gFlashPinBlocks[]  = {
-    {DIODE_MATRIX,  ACTIVE_LOW, 22, 8, 30, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC}
-   ,{DIODE_MATRIX,  ACTIVE_LOW, 22, 8, 30, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC}
-   ,{DIODE_MATRIX,  ACTIVE_LOW, 22, 8, 30, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 7, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC}
-   ,{DIODE_MATRIX,  ACTIVE_LOW, 22, 8, 30, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 8, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC}
-   ,{DIODE_MATRIX,  ACTIVE_LOW, 22, 8, 30, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 9, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC}
-   ,{DIODE_MATRIX,  ACTIVE_LOW, 22, 8, 30, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 10, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC}
-   ,{DIODE_MATRIX,  ACTIVE_LOW, 22, 8, 30, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 11, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC}
-};
-#endif
-
-// 4x8 pedalboard, 32 notes, starting on pin 16, output to channel 5
-// const PinBlock_t gFlashPinBlocks[]  = {
-//     {DIODE_MATRIX,  ACTIVE_LOW, 16, 4, 20, 8, PEDAL32_MAX_NOTES, PEDAL_LOW_NOTENUM, 5, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC}
-// };
-
-// A block of 32 parallel inputs starting on pin 16, output to channel 4
-// const PinBlock_t gFlashPinBlocks[]  = {
-//     {PARALLEL, ACTIVE_LOW, LED_BUILTIN, 0,  16, PEDAL32_MAX_NOTES, PEDAL32_MAX_NOTES, PEDAL_LOW_NOTENUM, 4, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC}
-// };
-
-
-// New struct designed for multi-contact systems
-// *** Change scanner to use the RAM based ArrayList of these ***
-// *** set up initMemPinBlocks() to load the RAM based list from either these defs or from the SD card file ***
+// Example flash resident pin configurations - uncomment only one
 
 // A regular 8x8 single contact keyboard with 61 notes
 // const PinBlockMulti_t gFlashPinBlocksMulti[] = {
 //    {DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {16, 24}, {0,0}, {0,0} }}     // 8X8 single contact
 // };
 
-// MAX stress test - seven regular 8x8 single contact keyboards with 61 notes
+// MAX stress test - seven 8x8 single contact 61-note keyboards (duplicated so it would send the same note on 7 channels)
 const PinBlockMulti_t gFlashPinBlocksMulti[] = {
-    {DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {22, 30}, {0,0}, {0,0} }}     // 8X8 single contact
+    {DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 1, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}     // 8X8 single contact
+   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 2, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}     // 8X8 single contact
+   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 3, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}     // 8X8 single contact
+   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 4, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}     // 8X8 single contact
+   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}     // 8X8 single contact
    ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}     // 8X8 single contact
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}     // 8X8 single contact
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}     // 8X8 single contact
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}     // 8X8 single contact
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}     // 8X8 single contact
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}     // 8X8 single contact
+   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 7, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}     // 8X8 single contact
 };
-
-// stress test - 7 8x8 keyboards (duplicated so it would actually send the same note on 7 channels)
-// const PinBlockMulti_t gFlashPinBlocksMulti[] = {
-//     {DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 1, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {16, 24}, {0,0}, {0,0} }}     // 8X8 single contact
-//    ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 2, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {16, 24}, {0,0}, {0,0} }}     // 8X8 single contact
-//    ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 3, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {16, 24}, {0,0}, {0,0} }}     // 8X8 single contact
-//    ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 4, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {16, 24}, {0,0}, {0,0} }}     // 8X8 single contact
-//    ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {16, 24}, {0,0}, {0,0} }}     // 8X8 single contact
-//    ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {16, 24}, {0,0}, {0,0} }}     // 8X8 single contact
-//    ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 7, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {16, 24}, {0,0}, {0,0} }}     // 8X8 single contact
-// };
 
 // A double contact keyboard
 // const PinBlockMulti_t gFlashPinBlocksMulti[] = {
@@ -156,6 +103,8 @@ const PinBlockMulti_t gFlashPinBlocksMulti[] = {
 // };
 
 // A block of 32 parallel inputs for a pedalboard starting at pin 22
+// There are not enough physical input pins to support multi-contact of a full keyboard in parallel mode
+// You could however have a dual contact 32-note pedalboard
 // const PinBlockMulti_t gFlashPinBlocksMulti[] = {
 //    {PARALLEL, ACTIVE_LOW, SINGLE_CONTACT, 0, PEDAL32_MAX_NOTES, PEDAL32_MAX_NOTES, PEDAL_LOW_NOTENUM, 5, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {0, 22}, {0,0}, {0,0} }}     // 8X8 single contact
 // };
