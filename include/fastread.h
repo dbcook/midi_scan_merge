@@ -23,33 +23,6 @@
 // have to use the PROGMEM directive on them in addition to declaring them 'const'.
 // Thanks to this discovery, this library now consumes zero static RAM.
 //
-// Arduino Mega 2560 Details
-// -------------------------
-// The Arduino Mega 2560 has physical IO registers that can be read to get 8 bits at once.
-// Typically in a matrix I/O situation we will read either 4 or 8 pins per scan pin,
-// so there would be a further advantage to align the read pins with register boundaries; however
-// this imposes very great constraints on IO pin mapping, and it appears that it would
-// not be a lot faster in an 8x8 diode matrix scan situation.
-//
-// For reference, the Mega 2560 register to IO pin mappings are as follows.
-// Note that there are discontiguous regions and some registers with reverse bit order.
-// In addition, PORTE and PORTJ contain signals that do not appear as IO pins on the Arduino Mega 2560 board.
-//
-// see https://docs.arduino.cc/retired/hacking/hardware/PinMapping2560/ for documentation
-// of the Arduino pins to ATMega 2560 chip pins & ports.
-// Here is a summary of the Mega 2560 pin-to-port mapping.
-//
-//  PORTE       0-3     5
-//  PORTB       10-13   50-53
-//  PORTJ       14-15
-//  PORTH       16-17   6-9     7-9 are reverse bit order on bits 4-6, pin 6 is bit 3 so it goes 6987
-//  PORTD       18-21   38      pretty much random bit placement 18 = bit 3, pin 19 = bit 2, 20 = bit 1, 21 = bit 0, pin 38 = bit 7
-//  PORTA       22-29
-//  PORTC       30-37           reverse bit order
-//  PORTG       39-41   4       reverse bit order
-//  PORTL       42-49           reverse bit order
-//  PORTK       62-69           (analog A8-A15)
-//  PORTF       54-61           (analog A0-A7)
 
 // function pointer types for digitalFastRead/Write wrappers
 typedef int (*fastRdFuncPtr)();
@@ -442,8 +415,8 @@ inline uint8_t fastread_portL() {
 // but we would need too many functions to handle all possible boundaries
 
 // The static read buffer consumes some RAM on a small arduino
-#define MAX_IO_PINS_MEGA_2560 70
-EXTERN uint8_t gPinReadBuf[MAX_IO_PINS_MEGA_2560];
+#define MAX_IO_PINS_ARDUINO_LARGE 70
+EXTERN uint8_t gPinReadBuf[MAX_IO_PINS_ARDUINO_LARGE];
 
 inline void readPins_22_29() {
     // likely the fastest way - extracts the values for 8 pins with one port read
@@ -487,7 +460,7 @@ inline void readPins_30_37() {
 // Sharding:
 //   Using all pins, ranges for 8x8 diode matrix blocks are 2-20, 21-36, 37-52
 //   A 4th 8x8 could live on the 16 analog pins
-void readAllMega2560DigitalInputPins() {
+void readAllArduinoDigitalInputPins() {
     int pin;
     gPinReadBuf[2] = digitalReadFast(2);
     gPinReadBuf[3] = digitalReadFast(3);
@@ -546,7 +519,7 @@ void readAllMega2560DigitalInputPins() {
     gPinReadBuf[pin]   = digitalReadFast(53);
 }
 
-void readAllMega2560AnalogInputPins() {
+void readAllArduinoAnalogInputPins() {
     int pin = 54;
 
     gPinReadBuf[pin++] = digitalReadFast(54);

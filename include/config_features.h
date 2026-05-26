@@ -110,7 +110,7 @@ EXTERN HardwareSerial *serialPorts[]
 // MIDI interfaces midi0, midi1, midi2 will be assigned to these ports in order
 //
 // Output MIDI serial messages will all go to the FIRST defined port (which becomes midi0)
-// The order of Serial3, Serial2, Serial1 maximimizes contiguous IO pins on Arduino Due and Mega.
+// The order of Serial3, Serial2, Serial1 maximimizes contiguous IO pins on Arduino large-format boards.
 
 #if DO_CHANNEL_SEPARATION_REMAP
 

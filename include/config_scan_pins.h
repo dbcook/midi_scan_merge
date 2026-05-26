@@ -159,7 +159,7 @@ const PinBlockMulti_t gFlashPinBlocksMulti[] = {
 // Analog input pin defs
 // ------------------------------
 // If you need discontiguous CC message numbers you have to define a separate pin block for each one
-// Pin numbers:  On Due and Mega 2560, A0 is pin 54.  You can also use the A0, A1, etc. symbols here if you want.
+// Pin numbers:  On Arduino large-format boards, A0 is pin 54.  You can also use the A0, A1, etc. symbols here if you want.
 #define ANALOG_FILTER_ALPHA 0.2
 #define ANALOG_DEADBAND 0.5
 #define ANALOG_LOW_GUARDBAND 1.0

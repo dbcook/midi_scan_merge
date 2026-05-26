@@ -31,7 +31,7 @@ widely available $50 network switches provide many ports of fully matrixed conne
 * Runs on fast or slow CPUs without changes
 * Robust serial MIDI thru/merge handling of all message types
     * Optional channel separation remapping of channel messages
-    * Number of merge input channels configurable up to 3 (all of the hardware serials on the Due and Mega 2560)
+    * Number of merge input channels configurable up to 3 (could be increased to 8 on Grand Central)
 * Parameterized to accommodate various input hardware without extensive code changes
 * Performance stats written to debug console
 * Built with PlatformIO plugin for vscode
@@ -56,6 +56,16 @@ widely available $50 network switches provide many ports of fully matrixed conne
     * LED driver (matrix based) for MIDI decoder
 
 ## Supported Boards
+
+I strongly recommend the AdaFruit Grand Central M4 for all applications of this firmware.  It combines
+high pin count, excellent clock speed, large RAM, plenty of flash, native USB, and an onboard SD card
+slot.  It currently costs $10 less than the Arduino Due, which uses the older Cortex M3 processor and
+is several times slower.
+
+For now I would avoid the Arduino Due because the Arduino standard YAML parser that will be used for
+config loading is not compatible with the Due's older SAM processor.  The Due build may be dropped
+because of this.
+
 
 [__AdaFruit Grand Central M4 Express__](https://www.adafruit.com/product/4064)
 
@@ -111,8 +121,9 @@ point that will lead to early failure.  A gradual tapered transition of 10-15mm 
 
 ## State of the Project
 
-The fourth and current prototype adds working Ethernet MIDI transport and replaces the Mega 2560
-build with an operational Arduino Due build.
+The fourth and current prototype adds working Ethernet MIDI transport and replaces the original Mega 2560
+build with operational AdaFruit Grand Central and Arduino Due builds.  Support has also been added
+for an optional 20 char x 4 line I2C LCD display.
 
 Since the 3rd prototype, the Ethernet libraries have been integrated up to the point where
 session connection and note emitting code is in place. The Ethernet transport now
@@ -169,9 +180,9 @@ For MIDI USB transport, you just need to put your MIDI library object on the nat
 
 #### Memory Diagnostics
 
-The `MemoryFree` library originally used to measure memory consumption on the Mega only works on the old AVR architecture.
-On the Due SAM processor the heap boundary symbols are different.  For now this is of no consequence since it doesn't
-look like memory will be an issue on the Due. There is [code suitable for SAM here]()
+We need new free-memory routines for the SAM/SAMD/Teensy based boards.
+On the SAM and SAMD processors the heap boundary symbols are different.  For now this is of no consequence since it doesn't
+look like memory will be an issue on any of those boards. There is [code suitable for SAM here]()
 
 
 ## Contributing
@@ -190,7 +201,8 @@ To configure, build and load this software into an Arduino, you need vscode with
 * PlatformIO
 
 On Apple Silicon Macs, you need to install rosetta 2 to allow emulation of the x86 compiler used
-for the older AVR based Arduinos (Mega/Uno/Nano).
+for the oldest AVR based Arduinos.  This might no longer be required now that we
+no longer support old boards with very low RAM.
 
 ```
 softwareupdate --install-rosetta
@@ -212,7 +224,7 @@ Console output sent to `Serial` on the Due comes out the Programming port.
 
 ## Detailed Documentation
 
-[Ethernet Shield 2 with Arduino Due/ Mega 2560 Pin Availability](docs/ethernet-shield.md)
+[Ethernet Shield 2 with Arduino Pin Availability](docs/ethernet-shield.md)
 
 [Generic MIDI serial shield pins and modification](docs/midi-shields.md)
 
@@ -276,10 +288,10 @@ The minimum system requirements are:
   * Available Ethernet
   * Board support exists in PlatformIO
 
-#### The boards
+#### The Boards
 
 * [__AdaFruit Grand Central M4 Express__](https://www.adafruit.com/product/4064) - $40.
-This board uses the well known Arduino Mega/Due pin layout.
+This board uses the well known Arduino large-format (70 GPIOs) pin layout.
 It has an ATSAMD51 CPU  (gen M4) with 120 MHz clock, 256 KB of SRAM, 1 MB of flash, full USB host capability,
 and a micro SD card slot.
 There are 70 total IO pins of which 16 can be analog inputs.
@@ -343,20 +355,19 @@ though it has 15 fewer IO pins than the Grand Central and Due.
 | Arduino Due            | 96 KB     | 512 KB    | 84 MHz    | 70        | 66     | YES     | EthShield | 80   | Fast enough, eth $30
 | Teensy 4.1             | 1 MB      | 7936 KB   | 600 MHz   | 55        | 50?    | YES     | YES       | ~50  | Very fast, Eth PHY onboard
 
-#### Processors Not Considered Suitable and Why
+#### Processors Not Considered Suitable
 
-The following are examples of processor modules that are not suitable for use with this firmware.  The principal reason is not
-having enough RAM to accommodate the full slate of MIDI transport libraries, the config parser, and a reasonable number of
-input debounce/filters.
+The following listed processor modules are not suitable for use with this firmware because they
+cannot support enough of the intended feature set.
 
 The Arduino Mega 2560 was once the standard for high pin count Arduinos, but it is now very old and has been 
 completely obsoleted by the Arduino Due and AdaFruit Grand Central.
 It is possible - and I did this during the prototyping phase of this project - to make a firmware build that will process
-3-4 keyboards on the Mega 2560, but it has to be completely configured in code, which is not a production-worthy solution.
+3-4 keyboards, but it has to be completely configured in code, which is not a production-worthy solution.
 Adding the Ethernet library took the capacity down to
 two keyboards, and adding the SD card loadable config support looked like it would further reduce that.
-The Mega 2560 is also fundamentally incapable of doing USB-MIDI transport due to the lack of class-compliant USB
-host support.
+It is also fundamentally incapable of doing USB-MIDI transport due to the lack of class-compliant USB
+host support.  Overall there is absolutely no reason to use it anymore.
 
 The Arduino Leonardo has *extremely* small RAM and a pin count that is just enough to allow scanning a single matrix
 keyboard (61 inputs) and emitting the MIDI over USB.  It would need to have a fixed configuration with a separate build for
@@ -364,10 +375,10 @@ each output MIDI channel.  The Leonardo would be a very expensive solution for a
 would require 7-10 Leonardos.  Due to library RAM/stack needs I think that running the AppleMIDI Ethernet transport
 onto the Leonardo is most likely infeasible as well.
 
-| Processor     | RAM       | Flash     | Speed     | Dig Pins  | Usable | USBHost | SD Card   | Cost     | Remarks
-| ----          |----       |----       |----       |----       |----    |----     |----       |----      |----
-| Ard Mega 2560 | 8 KB      | 256 KB    | 16 MHz    | 70        | 66     | NO      | EthShield | 50 + 30  | Not enough RAM, not fast enough for a full organ
-| Ard Leonardo  | 2.5 KB    | 32 KB     | 16 MHz    | 20        | 18     | YES     | infeasible | 24.     | Insufficient RAM, low pin count
+| Processor | RAM       | Flash     | Speed     | Dig Pins  | Usable | USBHost | SD Card    | Cost     | Remarks
+| ----      |----       |----       |----       |----       |----    |----     |----        |----      |----
+| Mega 2560 | 8 KB      | 256 KB    | 16 MHz    | 70        | 66     | NO      | EthShield  | 50 + 30  | Not enough RAM, not fast enough for a full organ
+| Leonardo  | 2.5 KB    | 32 KB     | 16 MHz    | 20        | 18     | YES     | infeasible | 24       | Insufficient RAM, low pin count
 
 
 ### System Voltage 3.3V Considerations
@@ -405,16 +416,19 @@ Both the Grand Central and Due have 70 total IO pins, all of which can be progra
 Out of the set of 70 pins, various subsets can be programmed for other functions such as 
 analog input, serial ports, PWM output, and some specialty functions.  Most IO shields
 will consume a few pins.  On a Grand Central or Due with an Ethernet Shield 2 installed, the
-following 5 pins are not usable:
+following pins are not usable:
 
 * Pins 0 and 1:  the base serial port used by the bootloader
-* Pins 4 and 10: used as chip selects by the Ethernet shield
+* Pin 4: chip select for the SD card on the shield (if used)
+* Pin 10: chip select for the Ethernet chip
 * Pin 13: the standard Arduino LED output
+* Pins 20-21: I2C clock and data for the LCD display (if configured)
 
-Thus With the Ethernet shield attached, on Grand Central and Due you have exactly 65 usable IO pins,
+Thus With the Ethernet shield attached, SD card in use but no LCD,
+on Grand Central and Due you have exactly 65 usable IO pins,
 of which 16 (Grand Central) or 12 (Due) are analog-capable.
 This will physically handle 4 full 8x8 diode matrix keyboards without using shared lines,
-or up to seven 8x8's if the same scan or read lines are used for each matrix.  Using two or more of
+or up to seven 8x8's if the same scan or read lines are used for each matrix.  Using more than one of
 the analog-capable pins for analog inputs OR using more than one digital pin for parallel inputs will
 reduce by one the number of 8x8 diode matrix groups that can be supported.
 
@@ -425,10 +439,10 @@ See [docs/midi-shields.md](docs/midi-shields.md) for specifics on wiring serial 
 
 The largest number of 8x8 diode matrix groups that can be scanned with 64 pins is seven,
 provided that common scan or read outputs are used for all of the matrix groups.  Each independent
-set of scan/read lines consumes 8 pins.  Thus if you use independent scan and lines for each matrix,
+set of scan/read lines consumes 8 pins.  Thus if you use separate scan and read lines for each matrix,
 you can only do 4 8x8 groups.
 
-IO expanders can possibly be used, though most of them are I2C based which has
+IO expanders can possibly be used, though most of them are I2C based which has severe
 speed limitations.  MCP23017 based expanders can have the wire rate set as high as 1.7 MHz,
 but even that is too slow to support high IO bit counts.  SPI based expanders can clock
 at 10MHz, which is considerably better.
@@ -436,7 +450,7 @@ at 10MHz, which is considerably better.
 
 ### IO Efficiency
 
-Initial testing with Arduino Mega 2560 showed that using the Arduino standard pin IO
+Initial testing showed that using the Arduino standard pin IO
 routines digitalRead() and digitalWrite() had a significant adverse impact on scan loop
 speeds, taking about 40% of the CPU per scan iteration.
 
@@ -467,14 +481,12 @@ would be tedious to maintain because the loops would have to be completely unrol
 Velocity sensing for keyboards (not yet implemented) will double the number of contacts and will
 double or nearly double the memory consumption of each debouncer.  It will also slow down the scanning slightly
 due to increased complexity of the algorithm while a key has at least one contact closed.
-However I think it should be possible to do velocity sensing on a 61-note keyboard with a single
-Mega 2560 at around 1 KHz.
 
 Aftertouch sensing, used on theater organs and synthesizers, involves 3 contacts per key.
 Implementing it just means stacking a 3rd layer of debounce atop the velocity sensing logic.
 Because of the number of IO pins needed, it will consume 3 8x8 matrix slots.  Thus without
-sharing scan lines or an IO extender you will only be able to scan one such keyboard per Arduino,
-and it will need to be a Due because three 8x8 blocks is too much for a Mega 2560.
+sharing scan lines or an IO extender you will only be able to scan one such keyboard per Arduino
+large-format board.
 
 # A Short History of the Development
 
@@ -486,12 +498,11 @@ A second version was built that reduced RAM usage by enough to get
 the data for a full slate of four 8x8 diode matrix arrays into about 4KB of RAM.  The time per
 input scanned was about 9-12 usec depending on circumstances.
 Several matrix and block scenarios appeared to run correctly. The debugging of this version 
-used a generic serial MIDI shield with the hardware hacked to attach it to the Mega 2560 SER3 port.
+used a generic serial MIDI shield with the hardware hacked to attach it to the SER3 port.
 
 After discovery that the stock Arduino digital IO library routines were eating up an
 excessive amount of CPU, a third version was implemented that uses the digitalWriteFast
-libary to reduce the IO overhead and give a scan time per input of about 7-8 usec
-on the Mega 2560.
+libary to reduce the IO overhead by about 40%.
 
 
 ## MIDI DIN-5 Serial Cables

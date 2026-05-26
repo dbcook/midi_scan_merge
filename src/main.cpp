@@ -4,7 +4,7 @@ MIDI scanner / merger/ decodeer for Arduino and Teensy family processors
 -------------------------------------------------------------------------------------
 
 This is a multi-function organ oriented MIDI scanner / merger / decoder for Arduino
-architecture processors such as the Arduino Due, Mega 2560, and Teensy. Its primary functions are:
+architecture processors such as the AdaFruit Grand Central M4, Arduino Due, and Teensy. Its primary functions are:
 
 1) Read digital and analog input from various devices (keyboards, pedalboards, expression
 pedals) and transmit corresponding MIDI messages to a computer or other
@@ -28,9 +28,7 @@ powerful processors.
 #include <Arduino.h>
 #include <Ethernet3.h>
 #include <ListLib.h>
-#if defined(ARDUINO_AVR_MEGA2560)
-#include <MemoryFree.h>
-#elif defined(ARDUINO_SAM_DUE)
+#if defined(ARDUINO_SAM_DUE)
 // MemoryFree library is AVR specific
 #endif
 
@@ -331,7 +329,7 @@ void configurePins() {
 
 // This just instantiates a global object.
 // TODO make this a member in our class so we don't consume the memory if not configured.
-// TODO The I2C takes 2 pins - in Mega format large-IO boards these are digital 20-21.
+// TODO The I2C takes 2 pins - in Arduino large-format boards these are digital 20-21.
 LcdDisplay * gLcd = new LcdDisplay();
 void initLCD() {
     gLcd->init();
@@ -405,20 +403,14 @@ unsigned long loopCount = 0;
 
 void loop() 
 {
-    // loop rate tracking data for Arduino Mega 2560
-    //   For reasons yet to be determined, diode matrix scanning time is a little nonlinear vs matrix size.
-    //   It seems like the higher number IO pins may be slower - branch offset efficiency vs offset byte size?
-    //    two 8x8 matrix blocks (Mega, slow IO)                  0.641 KHz (1560 usec = 12.2 usec per input )
-    //    single block of 32 parallels (Mega, slow IO            3.48 KHz (287 usec = 8.97 usec per input)
-    //    four 8x8 blocks (Due, fast IO)                         0.88 KHz (1132 usec = 4.64 usec per input)
+    // scan loop rate tracking
     loopCount++;
     if ((millis() - lastMillis) > 1000) {
         lastMillis = millis();
         digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
         AM_DBG(F("rate: "), loopCount);
-#if defined(ARDUINO_AVR_MEGA2560)
-        Console_print(F("memfree: ")); Console_println(freeMemory());
-#elif defined(ARDUINO_SAM_DUE)
+#if defined(ARDUINO_SAM_DUE)
+        // output free memory - TBD
 #endif
         loopCount = 0;
     }

@@ -1,6 +1,6 @@
 # Arduino Ethernet Shield v2 Info
 
-Documented as compatible with Arduino Uno and Mega. The shield requires an Arduino that has the ICSP connector.
+Known to work with AdaFruit Grand Central and Arduino Uno. The shield requires an Arduino that has the ICSP connector.
 
 ## MAC Addresses
 
@@ -49,10 +49,10 @@ stored using NV facilities from EEPROM.h or similar.
 
 D0 and D1 (RX0 and TX0 serial) are needed for code loading.
 
-### Pins Used by Arduino Due and Mega 2560 Specific Functions of Interest
+### Pins Used by Arduino Large-Format Boards for Specific Functions of Interest
 
-The Due and Mega 2560 have 3 additional hardware serial ports.  These can be used as GPIO if not configured
-to be serial ports.
+The Grand Central, Due and similar Arduino large-format boards have multiple hardware serial ports.  These can be used as GPIO if not configured
+to be serial ports.  The first 3 are listed below.
 
 | Pin    | Description
 | ---     | ---
@@ -67,7 +67,7 @@ to be serial ports.
 
 The Ethernet Shield 2 consumes only the following GPIO pins:
 
-* D4 : chip select for the SD card
+* D4 : chip select for the SD card (if used)
 * D10 : select for the WizNet 5500 chip
 * D13 : drives a mirror of the standard Arduino general purpose LED labeled "L"
 
@@ -88,7 +88,7 @@ the IO pins and gather them to standardized locking connectors (maybe XH, NOT ID
 I think we could put 8 IO pins plus a ground and +Vcc on each 10-pin connector, or 16 IO pins plus GND and Vcc
 on a 20 pin connector.
 
-### Available Pins when Ethernet Shield 2 is Used with the Due or Mega 2560
+### Available Pins when Ethernet Shield 2 is Used with Arduino Large-Format Boards
 
 | Pin Range | Num Pins Avail | Alt. Functions
 | ----      | ----           | ---- 
@@ -141,19 +141,19 @@ be reclaimed for GPIO use whenever the Ethernet shield is present:
 * D4 = CS chip select for SD card
 * D10 - selects the WizNet card
 
-The default Arduino LED is on D13 in the Due and Mega 2560.  It could be used as an output but
-probably not as an input (check this).
+The default Arduino LED is on D13 in the Arduino large-format boards.  It could be used as an output but
+probably not as an input.
 
-* D13 - the Ethernet shield drives a mirror of the Mega onboard LED "L".  This LED is immediately
+* D13 - the Ethernet shield drives a mirror of the standard Arduino onboard LED "L".  This LED is immediately
 adjacent to the right side of the Ethernet connector on the shield.  The next LED to the right is
 a power indicator and is not programmable.
 
-The SPI interface is implemented via the separate ICSP header in the middle of the shield v2 and mega boards.
+The SPI interface is implemented via the separate ICSP header in the middle of the shield v2 and large-format Arduino boards.
 
 In documentation for the original Ethernet shield, D10-12 are described as implementing the SPI connection to the WizNet chip.
-With the advent of the ICSP header, those lines are freed up for use by the Due/Mega.
+With the advent of the ICSP header, those lines are freed up for use as GPIO pins.
 
 Ethernet LEDS - activity, FDX and link LEDS are driven directly from the WizNet chip
 
 Power In - 5V
-Power Out - regulates +5V to +3V3 on IC2 - local or exported?
+Power Out - regulates +5V to +3V3 on IC2 - local or exported from the base MCU?

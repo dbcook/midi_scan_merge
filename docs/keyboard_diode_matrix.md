@@ -20,22 +20,13 @@ things will be much better than fastread().
 
 ## Port Mapping for Arduino Processors
 
-### Mega 2560
+ ### Grand Central
 
-Here is a summary of the Mega 2560 mapping of pins to 8-bit ports.
+ The SAMD51 processor has a fairly generalized but unwieldy 32-bit port structure.  The IOs are all on four 32-bit
+ ports but the way you reference them is not the same as on the Arduino Due.
 
- PORTE       0-3     5
- PORTB       10-13   50-53
- PORTJ       14-15
- PORTH       16-17   6-9     7-9 are reverse bit order on bits 4-6, pin 6 is bit 3 so it goes 6987
- PORTD       18-21   38      pretty much random bit placement 18 = bit 3, pin 19 = bit 2, 20 = bit 1, 21 = bit 0, pin 38 = bit 7
- PORTA       22-29
- PORTC       30-37           reverse bit order
- PORTG       39-41   4       reverse bit order
- PORTL       42-49           reverse bit order
- PORTK       62-69           (analog A8-A15)
- PORTF       54-61           (analog A0-A7)
-
+ [Much is explained here](https://forums.adafruit.com/viewtopic.php?t=153783)
+ 
  ### Due
 
  The Arduino Due uses four 32-bit ports designated PORTA, PORTB, PORTC, and PORTD.  The pin to port assignments are all
@@ -212,5 +203,3 @@ This is an older (2011) but good tutorial describing many ways that keyboard inp
 methods that predate microprocessor based designs.
 
 [Arduino Due Pinout (showing port mapping)](https://content.arduino.cc/assets/Pinout-Due_latest.pdf)
-
-[Arduino Mega 2560 Port Mapping](https://docs.arduino.cc/retired/hacking/hardware/PinMapping2560/)
