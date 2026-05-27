@@ -28,6 +28,7 @@ powerful processors.
 #include <Arduino.h>
 #include <Ethernet3.h>
 #include <ListLib.h>
+#include <MemoryFree.h>
 
 // Due: This brings ignorable compile warnings stemming from -Wreorder in Wire.h - members initialized in ctor in different order than declared.
 // Apparently only affects SAM processors and not SAMD, we get no warnings on Grand Central.
@@ -340,10 +341,10 @@ void showStartupBannerOnLcd() {
 
     // Line 1: configuration - enabled features etc
     gLcd->pLCD->setCursor(0, 1);
-    if (gUseEthernetMidi) {
+    if (gConfig.useEthernet) {
         gLcd->lcdMessage("ETH ");
     }
-    if (gUseUSBMidi) {
+    if (gConfig.useUSB) {
         gLcd->lcdMessage("USB ");
     }
     if (gUseSerialMidi) {
@@ -405,14 +406,33 @@ void loop()
     loopCount++;
     if ((millis() - lastMillis) > 1000) {
         lastMillis = millis();
+        int mem = freeMemory();
+
+        // Blnk the standard Arduino LED
         digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+
         AM_DBG(F("rate: "), loopCount);
 
-        // this takes about 3 msec of blocking foreground time, that's OK if it doesn't increase much
+        if (gConfig.showFreeMem) {
+            AM_DBG(F("Mem"), mem);
+        }
+
+        // this takes a few msec of blocking foreground time, that's OK if it doesn't increase much
         if (gConfig.useLcd) {
-            // show scan rate in LR corner of display - allow 5 chars
-            gLcd->pLCD->setCursor(15, 3);
             char buf[13];
+
+            if (gConfig.showFreeMem) {
+                // show free memory - max 7 digits (teensy)
+                // This is great to verify that memory is not being leaked but costs ~1% scan rate
+                gLcd->pLCD->setCursor(0, 3);
+                gLcd->lcdMessage("Mem ");
+                itoa(mem, buf, 10);
+                gLcd->lcdMessage(buf);
+            }
+
+            // show scan rate in LR corner of display - allow 5 chars
+            gLcd->pLCD->setCursor(12, 3);
+            gLcd->lcdMessage("Hz ");
             itoa(loopCount, buf, 10);
             gLcd->lcdMessage(buf);
         }
