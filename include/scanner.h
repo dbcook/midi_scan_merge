@@ -13,78 +13,8 @@
 // noticeable reduction in scan rate.
 class InputScanner {
     public:
-#if 0
-    static void scanPinBlocksSingleContact() {
-        for (uint16_t i = 0; i < nFlashPinBlocks; i++) {
-            // copying the PinBlock struct into RAM is almost twice as slow as reading directly from flash; don't do it
-            const PinBlock_t * pb = &(gFlashPinBlocks[i]);
-            midi::DataByte noteNum = pb->baseMidiNoteNum;
-            midi::DataByte noteLim = pb->baseMidiNoteNum + pb->numCtrls;        // in case matrix has a non-full select row
-            int dbIndx = gDebouncerBases[i];
 
-            // These msgs help confirm that the PinBlock is being read and processed correctly
-    #if 0
-            Console_print("cbase "); Console_println(pb->selectBasePin);
-            Console_print("clim "); Console_println(pb->selectBasePin + pb->numSelectPins);
-            Console_print("rbase "); Console_println(pb->readBasePin);
-            Console_print("rlim "); Console_println(pb->readBasePin + pb->numReadPins);
-    #endif
-            // process the pin block
-            if (pb->useSelect) {
-                // diode matrix - read pins loop inside of select pins loop
-                uint8_t clim = pb->selectBasePin + pb->numSelectPins;
-                uint8_t rlim = pb->readBasePin + pb->numReadPins;
-                for (uint8_t selPin = pb->selectBasePin; selPin < clim; selPin++) {
-                    fastwrite(selPin, pb->activeLow ? LOW : HIGH);
-
-                    // scan the read pins for this select pin
-                    for (uint8_t readPin = pb->readBasePin; (readPin < rlim) && (noteNum < noteLim); readPin++) {
-                        int inp = fastread(readPin);
-
-#if LOG_SCAN_SEQUENCE
-                        // alt scan action to log MIDI channel, noteNum, selectPin, readPin, dbIndx
-                        // if this is enabled, there must be external logic to only call this only once every 10 sec or so due to large serial output
-                        AM_DBG(F("Ch"), pb->midiOutChan, F("Nt"), noteNum, F("Sel"), selPin, F("Rd"), readPin, F("Db"), dbIndx);
-#else
-                        // machinations to eliminate args to the debouncer - gave a considerable speedup
-                        // this straightforward code was slower:
-                        // gDebouncers[dbIndx++].stateSample(pb->activeLow ? !inp : inp, noteNum++, pb->midiOutChan);
-                        bool istate = (pb->activeLow)? !inp : inp;
-                        if (istate) {
-                            gDebouncers[dbIndx].stateSampleActive();
-                        }
-                        else {
-                            gDebouncers[dbIndx].stateSampleInactive();
-                        }
-#endif
-                        // Alternate per-read-pin handlers that were useful for testing
-                        //gDebouncers[dbIndx].stateSampleActive();    // causes initial burst of noteOn for all notes
-
-                        dbIndx++;
-                        noteNum++;
-                    }
-                    fastwrite(selPin, pb->activeLow ? HIGH : LOW);  // deactivate the select pin
-                }
-            }
-            else {
-                // parallel non-matrix inputs - single loop on read pins
-                uint8_t rlim = pb->readBasePin + pb->numReadPins;
-                for (uint8_t readPin = pb->readBasePin; readPin < rlim; readPin++) {
-                    int inp = fastread(readPin);
-#if LOG_SCAN_SEQUENCE
-                        // alt scan action to log MIDI channel, noteNum, selectPin, readPin, dbIndx
-                        AM_DBG(F("Ch"), pb->midiOutChan, F("Nt"), noteNum, F("Rd"), readPin, F("Db"), dbIndx);
-#else
-                        gDebouncers[dbIndx++].stateSample(pb->activeLow ? !inp : inp, noteNum++, pb->midiOutChan);
-#endif
-                }
-            }
-
-        }
-    }
-#endif
-
-    // scans all new style in-memory digital pinBlocks
+    // scans all in-memory digital pinBlocks
     static void scanDigitalPinBlocks() {
         for (size_t i = 0; i < gPinBlocksDigital.size(); i++) {
             const PinBlockMulti_t * pb = &(gPinBlocksDigital[i]);
