@@ -9,14 +9,10 @@
 
 // Major features
 
-// Define this to suppress most debug options that interfere with performance
-#define PRODUCTION_BUILD true
-
-
 // Contact debouncer allocation
-// The largest this could ever be would be 7*64 = 448, which would support 7 8x8 diode matrix
+// The largest this could ever be without additional IO hardware would be 7*64 = 448, which would support 7 8x8 diode matrix
 // keyboards / pedalboards / piston arrays, with the 8 select lines shared across all matrices.
-// On Grand Central, Arduino Due and Teensy 4.1 this will be no problem.
+// On Grand Central, Arduino Due and Teensy 4.1 this amount of memory will be no problem.
 
 #define MAX_DEBOUNCERS 448
 
@@ -25,11 +21,15 @@
 //---------------------------------------
 
 typedef struct runtimeConfig {
-    bool useLcd;           // whether to write to LCD display.  OK even if LCD is not attached but with ~1% performance loss.
-    bool logScanSequence;  // true disables regular scanning and logs the whole sequence to console every 10 sec
-    bool useEthernet;      // true if we run Ethernet AppleMIDI session connect listener
-    char ethernetMac[6];   // Ethernet Mac Address
-    int matrixStabilizationUsec;  // stabilization delay in microseconds following select line writes.  Must be at least 7-10 usec.
+    bool isProductionBuild;           // can be used to generally disable non-production features
+    bool useLcd;                      // whether to write to LCD display.  OK even if LCD is not attached but with ~1% performance loss.
+    bool logScanSequence;             // true disables regular scanning and logs the whole sequence to console every 10 sec
+    bool useEthernet;                 // true if we run Ethernet AppleMIDI session connect listener
+    bool useUSB;                      // true if USB-MIDI transport is enabled
+    bool useSerialScanOutput;         // true for serial MIDI output from scan
+    bool showFreeMem;                 // true to display free memory on console and LCD lower left corner.  Slight cost in scan rate.
+    char ethernetMac[6];              // Ethernet Mac Address
+    int matrixStabilizationUsec;      // stabilization delay in microseconds following select line writes.  Must be at least 7-10 usec.
 
 } runtimeConfig_t;
 
@@ -37,10 +37,14 @@ typedef struct runtimeConfig {
 // Default runtime configuration.  These parameters can be overridden by the config file loaded from SD card or QSPI drive.
 EXTERN runtimeConfig_t gConfig
 #ifdef GEN_GLOBALS
-PROGMEM = { 
+PROGMEM = {
+    true,                                     // Production build
     true,                                     // use LCD
     false,                                    // scan sequence logging (DISABLES REGULAR SCAN)
-    true,                                     // run Ethernet service
+    true,                                     // run Ethernet transport
+    false,                                    // run USB transport
+    false,                                    // run serial transport output from hw input scanning
+    false,                                    // show free memory on console and LCD
     { 0xDE, 0xAD, 0xBE, 0xEF, 0xF0, 0x0D },   // Ethernet MAC address
     10                                        // Stabilization delay, microseconds
   }
@@ -81,13 +85,6 @@ PROGMEM = {
 #error MIDI_SERIAL_OUTPUT_PORTS > 1 unsupported!
 #endif
 #endif // SERIAL_MIDI_OUTPUT
-
-// Debugging feature to log the scanning sequence to console.  Disables regular scanning; must be false for production builds.
-#if PRODUCTION_BUILD
-#define LOG_SCAN_SEQUENCE false
-#else
-#define LOG_SCAN_SEQUENCE true
-#endif
 
 // Configure array of port addresses needed
 #if SERIAL_MIDI_INPUT || SERIAL_MIDI_OUTPUT

@@ -24,13 +24,13 @@
 
 EXTERN const char * gProdName
 #ifdef GEN_GLOBALS
-= "MIDI scan merge"
+= "MIDI Processor"
 #endif
 ;
 
 EXTERN const char * gProdVersion
 #ifdef GEN_GLOBALS
-= "0.9.1.1"
+= "0.9.1.2"
 #endif
 ;
 
@@ -53,13 +53,14 @@ EXTERN const char * gProdLicense
 // move each keyboard to a unique channel.
 
 // generally should be same as numPorts unless we consume (decode) some port and don't merge it
-// Decision: decoder with merge/remap will not be supported
+// Decision: serial input decoder port with other ports doing merge/remap will not be supported
 // Decision: If remap is desired, msgs from all MIDI interfaces will be remapped the same
 
 // how many MIDI serial ports are being merged with MIDI channel separation remapping
 // allowable range 0-3, 1 means a single incoming channel.
 
 // implemented functions are midiMergeThru, midiMerge2, midiMerge3
+// ***TODO we need a function pointer type and a configured pointer var
 #if MIDI_MERGE_SERIAL_PORTS == 1
 #define MIDI_MERGE_FUNC midiMergeThru
 #elif MIDI_MERGE_SERIAL_PORTS == 2
@@ -71,7 +72,8 @@ EXTERN const char * gProdLicense
 
 #ifdef GEN_GLOBALS
 // Set up the MIDI library - compile time macros
-// the operation of the macros prevents turning the midi0, midi1, etc. into an indexed array
+// the operation of the macros prevents turning the midi0, midi1, etc. into an indexed array as they must be literals rather than strings
+// This can be done in an init routine though
 #if MIDI_MERGE_SERIAL_PORTS > 0
 MIDI_CREATE_INSTANCE(HardwareSerial, *serialPorts[0], midi0);
 #endif
@@ -95,8 +97,8 @@ EXTERN t_midiInterfaceHWSerialPtr gMidiSerialOutputInterface
 ;
 #endif
 
-#if ETHERNET_MIDI_CONNECT
-// This one has to be initialized at runtime
+
+
 EXTERN t_midiInterfaceEthPtr gMidiEthOutputInterface
 #ifdef GEN_GLOBALS
     = NULL
@@ -109,8 +111,6 @@ EXTERN t_appleMidiInstancePtr gAppleMidiInstance
 #endif
 ;
 
-#endif
-
 // number of active Ethernet AppleMidi connections
 EXTERN int gEthConnections
 #ifdef GEN_GLOBALS
@@ -121,24 +121,18 @@ EXTERN int gEthConnections
 // RAM based fixed size array of debouncers - size must be sufficient for all configured diode matrix and parallel pin blocks
 EXTERN DebouncerMidiNoteSingleContact gDebouncers[MAX_DEBOUNCERS];
 
-// RAM based global array of debouncer base index for each pin block
-//EXTERN int gDebouncerBases[nFlashPinBlocks];
-EXTERN Deque<int> gDebouncerBases;
-
-EXTERN bool gUseEthernetMidi
+// RAM based global array of debouncer base index for each pin block - it will rarely exceed 10-15
+EXTERN Deque<int> gDebouncerBases
 #ifdef GEN_GLOBALS
-    = ETHERNET_MIDI_CONNECT
+(15)
 #endif
 ;
+
+
+// ***TODO should become part of the global config object
 
 EXTERN bool gUseSerialMidi
 #ifdef GEN_GLOBALS
     = SERIAL_MIDI_INPUT || SERIAL_MIDI_OUTPUT
-#endif
-;
-
-EXTERN bool gUseUSBMidi
-#ifdef GEN_GLOBALS
-    = USB_MIDI_CONNECT
 #endif
 ;
