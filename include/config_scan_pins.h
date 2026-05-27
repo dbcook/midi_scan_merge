@@ -22,6 +22,7 @@
 //    D13 - LED output on most Arduino implementations
 //    D14-D15 - Unavailable if you have a MIDI serial shield or debug monitor connected to SER3
 //    D20-21 - Unavailable if the LCD I2C display is in use (these shadow the SDA and SCL lines)
+//    D50-52 - Unavailable if the Ethernet shield is in use (MISO MOSI SCK for the primary SPI bus)
 //
 // For simplicity, unless you are trying to use all the possible pins I would just avoid using anything
 // below D14, D16 or D22 depending on your installed hardware options.
@@ -92,7 +93,7 @@
 
 // A regular 8x8 single contact keyboard with 61 notes
 // const PinBlockMulti_t gFlashPinBlocksMulti[] = {
-//    {DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {16, 24}, {0,0}, {0,0} }}     // 8X8 single contact
+//    {DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {22, 30}, {0,0}, {0,0} }}     // 8X8 single contact
 // };
 
 // Max stress test - seven 8x8 single contact 61-note keyboards (duplicated so it would send the same note on 7 channels)
@@ -100,13 +101,13 @@
 // FOR PERFORMANCE TESTING ONLY
 // This many inputs is physically achievable with 64 free pins though you would have to break up the block for the low pins and separate the pin ranges
 const PinBlockMulti_t gFlashPinBlocksMulti[] = {
-    {DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 1, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 2, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 3, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 4, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 7, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}
+    {DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 1, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
+   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 2, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
+   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 3, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
+   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 4, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
+   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
+   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
+   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 7, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
 };
 
 
@@ -115,11 +116,11 @@ const PinBlockMulti_t gFlashPinBlocksMulti[] = {
 //    {DIODE_MATRIX, ACTIVE_LOW, DOUBLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {16, 24}, {32,40}, {0,0} }}    // 8x8 double contact
 // };
 
-// A block of 32 parallel inputs for a pedalboard starting at pin 22
+// A block of 24 parallel inputs for a pedalboard starting at pin 22
 // There are not enough physical input pins to support multi-contact of a full keyboard in parallel mode
-// You could however have a dual contact 32-note pedalboard
+// You could however have a dual contact 32-note pedalboard if not using Ethernet
 // const PinBlockMulti_t gFlashPinBlocksMulti[] = {
-//    {PARALLEL, ACTIVE_LOW, SINGLE_CONTACT, 0, PEDAL32_MAX_NOTES, PEDAL32_MAX_NOTES, PEDAL_LOW_NOTENUM, 5, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {0, 22}, {0,0}, {0,0} }}     // 8X8 single contact
+//    {PARALLEL, ACTIVE_LOW, SINGLE_CONTACT, 0, 24, 24, PEDAL_LOW_NOTENUM, 5, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {0, 22}, {0,0}, {0,0} }}     // 8X8 single contact
 // };
 
 // ------------------------------
