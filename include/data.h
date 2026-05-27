@@ -30,7 +30,7 @@ EXTERN const char * gProdName
 
 EXTERN const char * gProdVersion
 #ifdef GEN_GLOBALS
-= "0.9.1"
+= "0.9.1.1"
 #endif
 ;
 
