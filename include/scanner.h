@@ -100,7 +100,15 @@ class InputScanner {
                     uint8_t clim = pbi->selectBasePin + pb->numSelectPins;
                     uint8_t rlim = pbi->readBasePin + pb->numReadPins;
                     for (auto selPin = pbi->selectBasePin; selPin < clim; selPin++) {
+
+                        // We *MUST* insert a delay after the fastwrite to allow the read pins to swing.  RC time constant is 6-7 usec so we need ~8-10 usec
+                        // 10 usec delay puts the maximum capacity 7-keyboard stress test scan (427 inputs) at 1.0 KHz
+                        // We could restore most of the scan frequency (but not the 0.5 msec latency) by queing the scan states and then
+                        // calling a function here to process them on the next pass.
+                        // But given that 1 KHz sample scan rate is more than enough, we don't need to add the extra complexity.
                         fastwrite(selPin, pb->activeLow ? LOW : HIGH);
+                        delayMicroseconds(gConfig.matrixStabilizationUsec);
+
                         for (auto readPin = pbi->readBasePin; (readPin < rlim) && (noteNum < noteLim); readPin++) {
                             if (gConfig.logScanSequence) {
                                 AM_DBG(F("Ch"), pb->midiOutChan, F("Nt"), noteNum, F("Sel"), selPin, F("Rd"), readPin, F("Db"), dbIndx);

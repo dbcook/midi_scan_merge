@@ -29,16 +29,20 @@ typedef struct runtimeConfig {
     bool logScanSequence;  // true disables regular scanning and logs the whole sequence to console every 10 sec
     bool useEthernet;      // true if we run Ethernet AppleMIDI session connect listener
     char ethernetMac[6];   // Ethernet Mac Address
+    int matrixStabilizationUsec;  // stabilization delay in microseconds following select line writes.  Must be at least 7-10 usec.
 
 } runtimeConfig_t;
 
+
+// Default runtime configuration.  These parameters can be overridden by the config file loaded from SD card or QSPI drive.
 EXTERN runtimeConfig_t gConfig
 #ifdef GEN_GLOBALS
-= { 
+PROGMEM = { 
     true,                                     // use LCD
     false,                                    // scan sequence logging (DISABLES REGULAR SCAN)
     true,                                     // run Ethernet service
-    { 0xDE, 0xAD, 0xBE, 0xEF, 0xF0, 0x0D }    // Ethernet MAC address
+    { 0xDE, 0xAD, 0xBE, 0xEF, 0xF0, 0x0D },   // Ethernet MAC address
+    10                                        // Stabilization delay, microseconds
   }
 #endif
 ;

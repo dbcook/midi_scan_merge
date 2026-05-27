@@ -30,6 +30,10 @@
 // scan pins or read pins (but not both!) as long as everything has the same polarity.  This enables a theoretical maximum
 // of seven 8x8 diode matrix blocks on one Grand Central M4 or Arduino Due.
 //
+// Diode matrix arrays structured as 8x8 (select lines x read lines) will work fine, but performance improves substantially
+// if you use more read lines per select line, due to the stabilization delay needed of ~10 microseconds following each
+// select line write.
+//
 // To create a general flash configuration that serve a variety of configurations, keep in mind that
 // there is no harm in scanning inputs that aren't connected.  On a Grand Central the processing is so
 // fast that the extra work doesn't matter.  You could set up a configuration with 4 8x8 matrix keyboards
@@ -91,16 +95,20 @@
 //    {DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {16, 24}, {0,0}, {0,0} }}     // 8X8 single contact
 // };
 
-// MAX stress test - seven 8x8 single contact 61-note keyboards (duplicated so it would send the same note on 7 channels)
+// Max stress test - seven 8x8 single contact 61-note keyboards (duplicated so it would send the same note on 7 channels)
+// Scan rate is 1.0 KHz on Grand Central with 10 usec stabilization time
+// FOR PERFORMANCE TESTING ONLY
+// This many inputs is physically achievable with 64 free pins though you would have to break up the block for the low pins and separate the pin ranges
 const PinBlockMulti_t gFlashPinBlocksMulti[] = {
-    {DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 1, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}     // 8X8 single contact
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 2, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}     // 8X8 single contact
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 3, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}     // 8X8 single contact
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 4, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}     // 8X8 single contact
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}     // 8X8 single contact
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}     // 8X8 single contact
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 7, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}     // 8X8 single contact
+    {DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 1, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}
+   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 2, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}
+   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 3, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}
+   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 4, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}
+   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}
+   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}
+   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 7, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {38, 46}, {0,0}, {0,0} }}
 };
+
 
 // A double contact keyboard
 // const PinBlockMulti_t gFlashPinBlocksMulti[] = {
