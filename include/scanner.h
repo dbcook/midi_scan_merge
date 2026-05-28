@@ -138,8 +138,43 @@ class InputScanner {
     }
 
     static void scanAnalogPinBlocks() {
-        for (uint16_t i; i < gPinBlocksAnalog.size(); i++) {
+        for (auto pbi = gPinBlocksAnalog.begin(); pbi != gPinBlocksAnalog.end(); pbi++) {
+            uint8_t ccNum = pbi->baseCCNum;
+            for (int anPin = pbi->basePin; anPin < pbi->basePin + pbi->numPins; anPin++, ccNum++) {
+                // *** where do we stash the running value?
 
+                // read and convert to float fraction of full range
+                // we've got an FPU in the Grand Central and we're gonna use it
+                float val = (float)analogRead(anPin) / 65536.0;
+
+                // scaled range is distance between the end guardbands
+                // guards are specified as %up from bottom and % down from top
+                //  Lower guard specifies the zero point - values below this are clipped to 0
+                //  Upper guard is the full range point - values above are clipped to 1.0
+                //  Value is translated to fraction of distance between lower and upper guard points
+
+                // normalize guard points to [0, 1.0]
+                float lowGuard = pbi->lowEndband / 100.0;
+                float hiGuard = pbi->highEndBand / 100.0;
+
+                // scale input value to the interval between the guard points and clamp to [0,1.0]
+                float scaledVal = 0;
+                if (val > hiGuard) {
+                    scaledVal = 1.0;
+                }
+                else if (val >= lowGuard) {
+                    scaledVal = (val - lowGuard) / (hiGuard - lowGuard);  // scale to interval
+                }
+
+                // apply simple exponential LPF to scaledVal to get filteredVal
+                //float filteredVal = pbi->filterAlpha * scaledVal + (1 - pbi->filterAlpha) * previous_filteredVal;
+
+                // deadband filter needed to prevent excessive messages
+                // see if filteredVal has moved away from previously transmitted filteredVal by more than the deadband
+                // if so, transmit MIDI CC message and record filteredVal as the new deadband center
+
+                AM_DBG(F("AnPin"), anPin, F("Val"), val);
+            }
         }
 
     }
