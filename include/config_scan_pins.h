@@ -123,7 +123,6 @@
 //    ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 7, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
 // };
 
-// trigger an illegal pin spin-die
 const PinBlockMulti_t gFlashPinBlocksMulti[] = {
     {DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {22, 40}, {0,0}, {0,0} }}
 //  {DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, 68, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {22, 40}, {0,0}, {0,0} }}     // fail test - notenum hits 128
@@ -131,12 +130,12 @@ const PinBlockMulti_t gFlashPinBlocksMulti[] = {
 
 // A double contact keyboard
 // const PinBlockMulti_t gFlashPinBlocksMulti[] = {
-//    {DIODE_MATRIX, ACTIVE_LOW, DOUBLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {22, 30}, {38,53}, {0,0} }} // dodge forbidden pins 50-52 (eth SPI)
+//    {DIODE_MATRIX, ACTIVE_LOW, DOUBLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {22,30}, {38,53}, {0,0} }} // dodge forbidden pins 50-52 (eth SPI)
 // };
 
 // A block of 24 parallel inputs for a pedalboard starting at pin 22
 // There are not enough physical input pins to support multi-contact of a full keyboard in parallel mode
-// You could however have a dual contact 32-note pedalboard if not using Ethernet
+// You could however have a dual contact 32-note pedalboard if not using Ethernet, thus making pins 50-52 available
 // const PinBlockMulti_t gFlashPinBlocksMulti[] = {
 //    {PARALLEL, ACTIVE_LOW, SINGLE_CONTACT, 0, 24, 24, PEDAL_LOW_NOTENUM, 5, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {0, 22}, {0,0}, {0,0} }}     // 8X8 single contact
 // };
