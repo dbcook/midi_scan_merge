@@ -60,7 +60,15 @@ class InputScanner {
         }
     }
 
-    // scans all in-memory digital pinBlocks
+    // Scan all in-memory digital pinBlocks
+    // NOTE: fastread / digitalWriteFast not implemented on Grand Central SAMD51, falls back to digitalRead and digitalWrite
+    //       not a problem because the processor is quite fast.  fastread is important on the much slower Due.
+    // There is a hardware based performance subtlety here.
+    // We *MUST* insert a delay after writing the select pin to allow the read pins to swing.
+    // RC time constant is 6-7 usec (220 ohm pullup and 30 pf parasitic capacitance) so we need ~8-10 usec
+    // We could restore most of the scan frequency (but not the latency) by queing the scan states and then
+    // calling a function here to process them on the next pass.
+    // But given that a 1 KHz sample scan rate is more than enough, we don't need to add the extra complexity now.
     static void scanDigitalPinBlocks() {
         for (size_t i = 0; i < gPinBlocksDigital.size(); i++) {
             const PinBlockMulti_t * pb = &(gPinBlocksDigital[i]);
@@ -77,11 +85,6 @@ class InputScanner {
                     uint8_t rlim = pbi->readBasePin + pb->numReadPins;
                     for (auto selPin = pbi->selectBasePin; selPin < clim; selPin++) {
 
-                        // We *MUST* insert a delay after the fastwrite to allow the read pins to swing.  RC time constant is 6-7 usec so we need ~8-10 usec
-                        // 10 usec delay puts the maximum capacity 7-keyboard stress test scan (427 inputs) at 1.0 KHz
-                        // We could restore most of the scan frequency (but not the 0.5 msec latency) by queing the scan states and then
-                        // calling a function here to process them on the next pass.
-                        // But given that 1 KHz sample scan rate is more than enough, we don't need to add the extra complexity.
                         fastwrite(selPin, pb->activeLow ? LOW : HIGH);
                         delayMicroseconds(gConfig.matrixStabilizationUsec);
 
@@ -89,8 +92,6 @@ class InputScanner {
                             if (gConfig.logScanSequence) {
                                 AM_DBG(F("Ch"), pb->midiOutChan, F("Nt"), noteNum, F("Sel"), selPin, F("Rd"), readPin, F("Db"), dbIndx);
                             }
-                            // NOTE: fastread / digitalWriteFast not implemented on Grand Central SAMD51, falls back to digitalRead and digitalWrite
-                            //       not a problem because the processor is quite fast.  fastread is important on the much slower Due.
                             int inp = fastread(readPin);
                             if (gConfig.logScanSequence) {
                                 AM_DBG(F("pv"), readPin, inp);
@@ -113,7 +114,7 @@ class InputScanner {
                 }
             }
             else {
-                // parallel - single contact only?
+                // parallel - single contact only.  Not enough pins to do dual contact except on pedalboard with USB transport ONLY.
                 if (pb->numContacts == 1) {
                     const PbPinInfo_t * pbi = &(pb->pbPinInfo[0]);              // contains base select and base read pin
                     uint8_t rlim = pbi->readBasePin + pb->numReadPins;
@@ -143,20 +144,21 @@ class InputScanner {
 
     }
 
-    // scans all pins with fastread but takes no action - reads are safe even if pin is configured as output
-    // thus requires no setup
+    // scans a lot of pins with fastread but takes no action - reads are safe even if pin is configured as output
+    // thus requires no setup, but you ought not hit the forbidden pins 62-66 on the Grand Central
+    // nor the SPI on 50-52 if Ethernet is active.  So we stop at 49.
     static void test_fastread() {
-        for (uint8_t i = 2; i < 69; i++) {
+        for (uint8_t i = 2; i < 49; i++) {
             fastread(i);
         }
     }
 
     // simulated 8x8 diode matrix - *** must separately config the scan pins as output
     static void test_diodeMatrix_8x8(byte *buf) {
-        for (int colPin = 20; colPin < 28; colPin++) {
+        for (int colPin = 22; colPin < 30; colPin++) {
             fastwrite(colPin, LOW);
             int indx = 0;
-            for (int readPin = 28; readPin < 36; readPin++) {
+            for (int readPin = 30; readPin < 38; readPin++) {
                 buf[indx++] = fastread(readPin);
             }
             fastwrite(colPin, HIGH);
