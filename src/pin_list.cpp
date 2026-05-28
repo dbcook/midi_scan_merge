@@ -74,7 +74,6 @@ void initAnalogInputFilters() {
 //      hardcoded defs in flash
 //      config read from SD card
 // The config source has to be a compile time switch else the eggs and chickens get in a shouting match
-// TODO switch to Deque for consistency
 void initMemPinBlocks() {
 
 #if PIN_CONFIG_SOURCE == flash
@@ -92,17 +91,5 @@ void initMemPinBlocks() {
 #error Unsupported pinblock source!
 #endif
 
-}
-
-
-// Inverse find of pinBlock given debouncer index
-// A bit expensive as we have to traverse the (fortunately short) debouncer bases list
-int getPinBlockIndxFromDebouncerIndx( int debIndx ) {
-    size_t i = 0;
-
-    while ( (i < gPinBlocksDigital.size() - 1) && (debIndx >= gDebouncerBases[i+1]) ) {
-        i++;
-    }
-    return i;
 }
 

@@ -78,4 +78,3 @@ void initDebouncers();
 int calcNumDigitalInputs();
 int calcNumAnalogInputs();
 int calcDebouncerIndx(int pbIndx, int selectPin, int readPin);
-int getPinBlockIndxFromDebouncerIndx( int debIndx );
