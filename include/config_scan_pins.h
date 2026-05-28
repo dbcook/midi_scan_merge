@@ -23,17 +23,30 @@
 //    D14-D15 - Unavailable if you have a MIDI serial shield or debug monitor connected to SER3
 //    D20-21 - Unavailable if the LCD I2C display is in use (these shadow the SDA and SCL lines)
 //    D50-52 - Unavailable if the Ethernet shield is in use (MISO MOSI SCK for the primary SPI bus)
+//    D62-66 - These don't exist on the Grand Central and trying to reference them crashes
 //
 // For simplicity, unless you are trying to use all the possible pins I would just avoid using anything
 // below D14, D16 or D22 depending on your installed hardware options.
+//
+// CAUTION AOBUT DISJOINT HIGH PIN RANGES ON THE GRAND CENTRAL
+// On Arduino Due, A0 is pin 54 and they go up from there to A11 = pin 65.  This is good.
+// You can always safely use the A0, A1, etc. symbols for Due as long as you don't exceed A11 == D65.
+//
+// However...
+//
+// On Grand Central, the analog pins are in disjoint blocks and there is a gap in the high digital pins!
+// A0-A7 are digital 67-74.  A8-A15 are digital 54-61.  Trying to reference digital 62-66 causes a hard crash.
+// Be careful when using the Axx symbols that you do not make a block that references digital pins 62-66 in any way.
+// Be especially vigilant about not making any pin range that crosses the A7-A8 boundary since this will violate the gap.
 //
 // It's possible to increase capacity by having multiple diode matrix blocks share the same
 // scan pins or read pins (but not both!) as long as everything has the same polarity.  This enables a theoretical maximum
 // of seven 8x8 diode matrix blocks on one Grand Central M4 or Arduino Due.
 //
-// Diode matrix arrays structured as 8x8 (select lines x read lines) will work fine, but performance improves substantially
-// if you use more read lines per select line, due to the stabilization delay needed of ~10 microseconds following each
-// select line write.
+// Diode matrix arrays structured as 8x8 (select lines x read lines) will work fine, but performance could
+// improve substantially it were possible to use more read lines per select line, due to the stabilization
+// delay needed of ~10 microseconds following each select line write.  It's not yet supported but we will
+// eventually be able to set up a double-contact keyboard as an 8x16 matrix.
 //
 // To create a general flash configuration that serve a variety of configurations, keep in mind that
 // there is no harm in scanning inputs that aren't connected.  On a Grand Central the processing is so
@@ -100,20 +113,25 @@
 // Scan rate is 1.0 KHz on Grand Central with 10 usec stabilization time
 // FOR PERFORMANCE TESTING ONLY
 // This many inputs is physically achievable with 64 free pins though you would have to break up the block for the low pins and separate the pin ranges
-const PinBlockMulti_t gFlashPinBlocksMulti[] = {
-    {DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 1, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 2, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 3, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 4, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
-   ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 7, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
-};
+// const PinBlockMulti_t gFlashPinBlocksMulti[] = {
+//     {DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 1, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
+//    ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 2, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
+//    ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 3, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
+//    ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 4, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
+//    ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 5, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
+//    ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
+//    ,{DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 7, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {30, 38}, {0,0}, {0,0} }}
+// };
 
+// trigger an illegal pin spin-die
+const PinBlockMulti_t gFlashPinBlocksMulti[] = {
+    {DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {22, 40}, {0,0}, {0,0} }}
+//  {DIODE_MATRIX, ACTIVE_LOW, SINGLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, 68, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {22, 40}, {0,0}, {0,0} }}     // fail test - notenum hits 128
+};
 
 // A double contact keyboard
 // const PinBlockMulti_t gFlashPinBlocksMulti[] = {
-//    {DIODE_MATRIX, ACTIVE_LOW, DOUBLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {16, 24}, {32,40}, {0,0} }}    // 8x8 double contact
+//    {DIODE_MATRIX, ACTIVE_LOW, DOUBLE_CONTACT, 8, 8, KEYBOARD61_MAX_NOTES, KEYBOARD61_LOW_NOTENUM, 6, ATTACK_DEBOUNCE_MSEC, RELEASE_DEBOUNCE_MSEC, { {22, 30}, {38,53}, {0,0} }} // dodge forbidden pins 50-52 (eth SPI)
 // };
 
 // A block of 24 parallel inputs for a pedalboard starting at pin 22
@@ -127,12 +145,13 @@ const PinBlockMulti_t gFlashPinBlocksMulti[] = {
 // Analog input pin defs
 // ------------------------------
 // If you need discontiguous CC message numbers you have to define a separate pin block for each one
-// Pin numbers:  On Arduino large-format boards, A0 is pin 54.  You can also use the A0, A1, etc. symbols here if you want.
+// See caution at the top of the file about pin blocks NOT ever using pins 62-66 on the Grand Central.
 #define ANALOG_FILTER_ALPHA 0.2
 #define ANALOG_DEADBAND 0.5
 #define ANALOG_LOW_GUARDBAND 1.0
 #define ANALOG_HIGH_GUARDBAND 1.0
 
 const PinBlockAnalogRead_t gFlashPinBlocksAnalogRead [] = {
-    { A0, 73, 3, ANALOG_DEADBAND, ANALOG_LOW_GUARDBAND, ANALOG_HIGH_GUARDBAND, ANALOG_FILTER_ALPHA }
+    { 59, 3, 73, ANALOG_DEADBAND, ANALOG_LOW_GUARDBAND, ANALOG_HIGH_GUARDBAND, ANALOG_FILTER_ALPHA }
+//  { 60, 3, 73, ANALOG_DEADBAND, ANALOG_LOW_GUARDBAND, ANALOG_HIGH_GUARDBAND, ANALOG_FILTER_ALPHA }    // fail test - pin 62 illegal on Grand Central
 };

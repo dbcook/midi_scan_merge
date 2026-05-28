@@ -3,10 +3,12 @@
 #include <Arduino.h>
 #include <MIDI.h>
 #include <AppleMIDI.h>
+#include <LiquidCrystal_I2C.h>
 
 #include "glob_gen.h"
 #include "debug.h"
 #include "deque.h"
+#include "lcd_display.h"
 
 // USE_EXT_CALLBACKS is necessary to catch any MIDI events
 // Since it only takes about 150 bytes of flash we turn it on by default.
@@ -97,6 +99,7 @@ EXTERN t_midiInterfaceHWSerialPtr gMidiSerialOutputInterface
 ;
 #endif
 
+EXTERN LcdDisplay * gLcd;
 
 
 EXTERN t_midiInterfaceEthPtr gMidiEthOutputInterface

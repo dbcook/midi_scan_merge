@@ -50,8 +50,8 @@ typedef struct PinBlockMultContact {
 // Everything is done in floating point since the Grand Central has an FPU
 typedef struct PinBlockAnalogRead {
     uint8_t basePin;                // starting pin number for this block (easiest to use A0, A1, etc.)
-    midi::DataByte baseCCNum;       // starting CC number for inputs in this block
     uint8_t numPins;                // number of pins in this block (consecutive CC numbers)
+    midi::DataByte baseCCNum;       // starting CC number for inputs in this block
     float deadband;                 // center deadband in percent of range
     float lowEndband;               // guardband at bottom in percent of range
     float highEndBand;              // guardband at top in percent of range

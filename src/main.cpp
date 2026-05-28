@@ -252,70 +252,10 @@ void startMidi()
 
 void configurePins() {
     pinMode(LED_BUILTIN, OUTPUT);
-#if 0
-    // single contact pin blocks
-    for (int i = 0; i < nFlashPinBlocks; i++) {
-        const PinBlock_t * pb = &gFlashPinBlocks[i];
-
-        if (pb->useSelect) {
-            for (uint8_t selPin = pb->selectBasePin; selPin < pb->selectBasePin + pb->numSelectPins; selPin++) {
-                pinMode(selPin, OUTPUT);
-                digitalWrite(selPin, pb->activeLow ? HIGH : LOW);
-            }
-        }
-        for (uint8_t readPin = pb->readBasePin; readPin < pb->readBasePin + pb->numReadPins; readPin++) {
-            pinMode(readPin, pb->activeLow ? INPUT_PULLUP : INPUT);
-        }
-    }
-#endif
-    //
-    // multi-contact digital input pin blocks
-    //
-    // new code to work from gMemPinBlocksDigital and gMemPinBlocksAnalog
-    
-    for (auto pbi = gPinBlocksDigital.begin(); pbi != gPinBlocksDigital.end(); pbi++) {
-        int nc = pbi->numContacts;
-        if (pbi->useSelect) {
-            // diode matrix
-            for (auto j = 0; j < nc; j++) {
-                const PbPinInfo_t * pbinf = &(pbi->pbPinInfo[j]);
-                for (auto selPin = pbinf->selectBasePin; selPin < pbinf->selectBasePin + pbi->numSelectPins; selPin++) {
-                    pinMode(selPin, OUTPUT);
-                    digitalWrite(selPin, pbi->activeLow ? HIGH : LOW);
-                    AM_DBG(F("Pin"), selPin, F("Output"));
-                }
-                // Here we require that if numSelectPins == 1, then numReadPins must be correct and must equal numCtrls
-                int np = (pbi->numSelectPins == 1) ? pbi->numCtrls : pbi->numReadPins;
-                for (auto readPin = pbinf->readBasePin; readPin < pbinf->readBasePin + np; readPin++) {
-                    pinMode(readPin, pbi->activeLow ? INPUT_PULLUP : INPUT);
-                    AM_DBG(F("Pin"), readPin, F("Pullup"));
-                }
-            }
-        }
-        else {
-            // parallel digital inputs block
-            for (auto j = 0; j < nc; j++) {
-                const PbPinInfo_t * pbinf = &(pbi->pbPinInfo[j]);
-                for (auto readPin = pbinf->readBasePin; readPin < pbinf->readBasePin + pbi->numReadPins; readPin++) {
-                    pinMode(readPin, pbi->activeLow ? INPUT_PULLUP : INPUT);
-                    AM_DBG(F("Pin"), readPin, F("Pullup"));
-                }
-            }
-        }
-    }
-    //
-    // analog input pin blocks - set as input with pullup disabled
-    // The analog pins merely need to not be in output mode - analogRead and digitalRead will both work on an analog pin in input mode.
-    // We disable the pullup here in case somehow we enter with the pullup enabled.
-    // analogRead will still work if the pullup is on but the readings will be inaccurate
-    //
-    for (auto pbi = gPinBlocksAnalog.begin(); pbi != gPinBlocksAnalog.end(); pbi++) {
-        for (int anPin = pbi->basePin; anPin < pbi->basePin + pbi->numPins; anPin++) {
-            pinMode(anPin, INPUT);
-            AM_DBG(F("Pin"), anPin, F("AnInput"));
-        }
-    }
-    
+    InputScanner::checkPinFunctionConflicts();
+    // configuring checks for patently illegal pin assignments
+    InputScanner::configureDigitaPins();
+    InputScanner::configureAnalogPins();
 }
 
 // Startup for the optional 20x4 LCD display
@@ -326,9 +266,9 @@ void configurePins() {
 //
 
 // NOTE: The I2C consumes 2 pins - in Arduino large-format boards these are digital 20-21.
-LcdDisplay * gLcd = new LcdDisplay();
 void initLCD() {
     if (!gConfig.useLcd) return;
+    gLcd = new LcdDisplay();
     gLcd->init();
     // Display initial startup banner
     gLcd->lcdMessage("DBCook MIDI ", 0, 0);
@@ -373,6 +313,8 @@ void setup()
     while( !Console ) {
         ;
     }
+    // delay for Grand Central so we can startup serial monitor on the bootloader port
+    //delay(10*1000);
 #endif
     AM_DBG(gProdName, gProdVersion);
     AM_DBG(gProdCopyright);
