@@ -12,6 +12,8 @@
  * Defines a templated (generic) class for a double-ended queue of things.
  * Used for Arduino projects, just #include "Deque.h" and add this file via the IDE.
  * 
+ * DBCook note:  LACKS ITERATOR CAPABILITY
+ * 
  * Examples:
  * 
  * Deque<char> queue(10); // Max 10 chars in this queue
