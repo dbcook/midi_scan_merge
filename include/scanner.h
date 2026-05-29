@@ -233,7 +233,7 @@ class InputScanner {
     static void checkLegalAnalogPin(int pin, const char * msg) {
     #ifdef ARDUINO_SAM_DUE
         if (pin < A0 || pin > A11) _SpinDie(msg, pin);
-    #elif defined(ARDUINO_ADAFRUIT_GRAND_CENTRAL_M4)
+    #elif defined(ARDUINO_GRAND_CENTRAL_M4)
         // Analog to digital pin numbering is screwy on the M4: there are two disjoint blocks with a dangerous gap.
         // A0-A7 are digital 67-74.  A8-A15 are digital 54-61.  Trying to reference digital 62-66 causes a hard crash.
         if (pin < 54 || pin > 74 || (pin >= 62 && pin <=66)) _SpinDie(msg, pin);
