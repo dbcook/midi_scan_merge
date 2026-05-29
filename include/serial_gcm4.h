@@ -24,6 +24,10 @@
 //   to see the Sercom mappings and pin definitions that will let you figure out how many hardware UARTs actually exist.
 //
 //   The Grand Central M4 has board symbols ARDUINO_GRAND_CENTRAL_M4 and ADAFRUIT_GRAND_CENTRAL_M4, MCU symbol __SAMD51P20A__ and architecture __SAMD51__
+//
+//   Source for the AdaFruit variants: github.com/adafruit/ArduinoCore-samd/variants/grand_central_m4
+//   That has not been updated in 6 years and is 400+ commits behind arduino/ArduinoCore-samd/master which itself
+//   has not been updated in ~3 years.  Maintenance is lacking!
 // 
 //   The Grand Central has 8 sercoms - 4 are hardware UARTs, SPI is sercom7 and SPI1 is sercom2, WIRE is sercom3 and WIRE1 is sercom6.
 //   Note that the TX and RX pin order for Serial1 is backwards - RX pin comes first - from the order used for the other 3 ports.
