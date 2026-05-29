@@ -80,32 +80,39 @@ void DebouncerMidiNoteSingleContact::stateSampleActive() {
 
 
 // Debouncer action routines
-// These use compile time and global transport output settings to generate outbound MIDI messages
+// These use global transport output settings to generate outbound MIDI messages
 
 void DebouncerMidiNoteSingleContact::activateControl() {
 #if SERIAL_MIDI_OUTPUT
-    gMidiSerialOutputInterface->sendNoteOn(this->noteNum, midiDefaultVelocity, this->midiOutChan);
+    // *** still compile time protected b/c output gMidiSerialOutputIinterface isn't always defined
+    if (gConfig.useSerialScanOutput) {
+        gMidiSerialOutputInterface->sendNoteOn(this->noteNum, midiDefaultVelocity, this->midiOutChan);
+    }
 #endif
-#if ETHERNET_MIDI_OUTPUT
-    gMidiEthOutputInterface->sendNoteOn(this->noteNum, midiDefaultVelocity, this->midiOutChan);
-#endif
+    if (gConfig.useEthernetOutput) {
+        gMidiEthOutputInterface->sendNoteOn(this->noteNum, midiDefaultVelocity, this->midiOutChan);
+    }
 }
 
 void DebouncerMidiNoteSingleContact::deactivateControl() {
 #if SERIAL_MIDI_OUTPUT
-    gMidiSerialOutputInterface->sendNoteOff(this->noteNum, midiDefaultVelocity, this->midiOutChan);
+    if (gConfig.useSerialScanOutput) {
+        gMidiSerialOutputInterface->sendNoteOff(this->noteNum, midiDefaultVelocity, this->midiOutChan);
+    }
 #endif
-#if ETHERNET_MIDI_OUTPUT
-    gMidiEthOutputInterface->sendNoteOff(this->noteNum, midiDefaultVelocity, this->midiOutChan);
-#endif
+    if (gConfig.useEthernetOutput) {
+        gMidiEthOutputInterface->sendNoteOff(this->noteNum, midiDefaultVelocity, this->midiOutChan);
+    }
 }
 
 void DebouncerMidiCCAnalog::setControlValue() {
 #if SERIAL_MIDI_OUTPUT
-    gMidiSerialOutputInterface->sendControlChange(thiscontrolNum, scaleInput(filteredCtrlValue), this->midiOutChan);
+    if (gConfig.useSerialScanOutput) {
+        gMidiSerialOutputInterface->sendControlChange(thiscontrolNum, scaleInput(filteredCtrlValue), this->midiOutChan);
+    }
 #endif
-#if ETHERNET_MIDI_OUTPUT
-    gMidiEthOutputInterface->sendControlChange(this->controlNum, scaleInput(filteredCtrlValue), this->midiOutChan);
-#endif
+    if (gConfig.useEthernetOutput) {
+        gMidiEthOutputInterface->sendControlChange(this->controlNum, scaleInput(filteredCtrlValue), this->midiOutChan);
+    }
 }
 
