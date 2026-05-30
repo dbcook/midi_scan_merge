@@ -6,6 +6,7 @@
 #include "midi_instruments.h"
 #include "debouncer.h"
 #include "ArrayList.h"
+#include "spindie.h"
 
 // Pin block definition for both matrix and parallel scan organization
 // All instances of this should be static (const).  Cannot be a class because of this.
@@ -51,6 +52,7 @@ typedef struct PinBlockMultContact {
 typedef struct PinBlockAnalogRead {
     uint8_t basePin;                // starting pin number for this block (easiest to use A0, A1, etc.)
     uint8_t numPins;                // number of pins in this block (consecutive CC numbers)
+    midi::Channel midiOutChan;      // MIDI output channel for the CC messages
     midi::DataByte baseCCNum;       // starting CC number for inputs in this block
     float deadband;                 // center deadband in percent of range
     float lowEndband;               // guardband at bottom in percent of range
@@ -78,3 +80,53 @@ void initDebouncers();
 int calcNumDigitalInputs();
 int calcNumAnalogInputs();
 int calcDebouncerIndx(int pbIndx, int selectPin, int readPin);
+
+class PinList {
+
+    public:
+
+    // check for patently illegal pin based on runtime config
+    // spindies on fail - game over because the config will not run successfully
+    static void checkLegalPin(int pin, const char * msg) {
+        // always-illegal pins: 0-1 Serial / USB port
+        if ((pin == 0) || (pin == 1)) _SpinDie(msg, pin);
+
+        // SD card chip select:  pin 4 for SD on eth card (Due), out of band CS on Grand Central so not illegal there
+#ifdef ARDUINO_SAM_DUE
+        if (pin == 4) _SpinDie(msg, pin);
+#endif
+        // Ethernet chip select pin 10
+        if (gConfig.useEthernet && (pin ==10)) _SpinDie(msg, pin);
+
+        // LED pin 13
+        // On the Grand Central it is OK to configure pin 13 as input; it has buffering and can do other functions e.g. SER5
+        // On the Due it is technically possible but requires special config of the onboard PIOB and also special code to read;
+        // if you try to do it the normal way the LED becomes a weak pulldown on the input.  So we ban it since I think
+        // we will ultimately drop Due support.
+#ifdef ARDUINO_SAM_DUE
+        if (pin == 13) _SpinDie(msg, pin);
+#endif
+
+        // LCD I2C pins 20-21
+        if (gConfig.useLcd && ((pin == 20) || (pin == 21))) _SpinDie(msg, pin);
+
+        // Ethernet SPI (ICSP headers) pins 50-52
+        if (gConfig.useEthernet && pin >= 50 && pin <= 52) _SpinDie(msg, pin);
+    }
+
+    // Make sure the specified pin is analog-capable on the target and spindie if not
+    static void checkLegalAnalogPin(int pin, const char * msg) {
+    #ifdef ARDUINO_SAM_DUE
+        if (pin < A0 || pin > A11) _SpinDie(msg, pin);
+    #elif defined(ARDUINO_GRAND_CENTRAL_M4)
+        // Analog to digital pin numbering is screwy on the GCM4: there are two disjoint blocks with a dangerous gap.
+        // A0-A7 are digital 67-74.  A8-A15 are digital 54-61.  Trying to reference digital 62-66 causes a hard crash.
+        if (pin < 54 || pin > 74 || (pin >= 62 && pin <=66)) _SpinDie(msg, pin);
+    #else
+    #error Unsupported processor type!
+    #endif
+
+    }
+
+};
+
