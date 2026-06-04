@@ -251,13 +251,19 @@ void startMidi()
 
 
 void configurePins() {
+    // System pins.  Most are initialized by device related libraries.
     pinMode(LED_BUILTIN, OUTPUT);
-    // TODO check for illegal pins here
+
+    // Application pins
+    // Check for illegal pins and pin function conflicts
+    // Must do first so we don't disable the LCD by setting the I2C pins as inputs, etc.
+    InputScanner::configureDigitaPins(false);
+    InputScanner::configureDigitaPins(false);
     InputScanner::checkPinFunctionConflicts();
     
-    // configuring methods currently check for patently illegal pin assignments - factor that out and do above
-    InputScanner::configureDigitaPins();
-    InputScanner::configureAnalogPins();
+    // configure them once all validations have passed
+    InputScanner::configureDigitaPins(true);
+    InputScanner::configureAnalogPins(true);
 }
 
 // Startup for the optional 20x4 LCD display

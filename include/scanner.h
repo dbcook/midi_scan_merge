@@ -6,19 +6,20 @@
 #include "data.h"
 #include "spindie.h"
 
-// Minimal-RAM digital pin scan block processor based on flash PinBlock defs and separately allocated debouncers.
+// Digital input pin scan block processor
 // This class also incorporates digital/analog conflict detection
 //
-// We assume here that pin numbers cannot exceed 255.  The largest module seen so far has 70.
-// It would be nice to have a base class with the core pinBlock based scan logic and a virtual
-// method for what to do for each input.  However, the function call involved causes a
-// noticeable reduction in scan rate.
+// We assume here that pin numbers cannot exceed 255.  The largest Arduino style module seen so far has 70.
+//
+// It might be structurally nice to have a base class with the core pinBlock based scan logic and a virtual
+// method for what to do for each input.  However, the function call involved causes a noticeable reduction
+// in scan rate.
 class InputScanner {
     public:
 
-    // configure all digital scan and read pins in accordance with the pinBlock definitions
-    // TODO enforce pin avoidance rules here with spindie
-    static void configureDigitaPins() {
+    // validate and configure all digital scan and read pins in accordance with the pinBlock definitions
+    // When doConfig is false, we only test for illegal pins
+    static void configureDigitaPins(bool doConfig = false) {
         for (auto pbi = gPinBlocksDigital.begin(); pbi != gPinBlocksDigital.end(); pbi++) {
             int numReadPIns =  (pbi->numCtrls < pbi->numReadPins) ? pbi->numCtrls : pbi->numReadPins;
             int numSelPins = pbi->numSelectPins;
@@ -27,18 +28,22 @@ class InputScanner {
                 if (pbi->useSelect) {
                     int selBase = pbi->pbPinInfo[contactIndx].selectBasePin;
                     for (auto j = selBase; j < selBase + numSelPins; j++) {
-                        PinList::checkLegalPin(j, "Bad Sel Pin");
-                        // scan pins get configured as output
-                        pinMode(j, OUTPUT);
-                        fastwrite(j, pbi->activeLow ? HIGH : LOW);
-                        AM_DBG(F("Pin"), j, F("Output"));
+                        PinList::checkLegalPin(j, "Unusable Sel Pin");
+                        if (doConfig) {
+                            // scan pins get configured as output
+                            pinMode(j, OUTPUT);
+                            fastwrite(j, pbi->activeLow ? HIGH : LOW);
+                            AM_DBG(F("Pin"), j, F("Output"));
+                        }
                     }
                 }
                 for (auto j = readBase; j < readBase + numReadPIns; j++ ) {
-                    PinList::checkLegalPin(j, "Bad Read Pin");
-                    // read pins get configured as INPUT_PULLUP
-                    pinMode(j, pbi->activeLow ? INPUT_PULLUP : INPUT);
-                    AM_DBG(F("Pin"), j, F("Pullup"));
+                    PinList::checkLegalPin(j, "Unusuable Read Pin");
+                    if (doConfig) {
+                        // read pins get configured as INPUT_PULLUP
+                        pinMode(j, pbi->activeLow ? INPUT_PULLUP : INPUT);
+                        AM_DBG(F("Pin"), j, F("Pullup"));
+                    }
                 }
             } // contacts loop
         } // pinBlock loop
@@ -48,15 +53,17 @@ class InputScanner {
     // The analog pins merely need to not be in output mode - analogRead and digitalRead will both work on an analog pin in input mode.
     // We disable the pullup here in case somehow we enter with the pullup enabled.
     // analogRead will still work if the pullup is on but the readings will be inaccurate
-    static void configureAnalogPins() {
+    static void configureAnalogPins(bool doConfig = false) {
         for (auto pbi = gPinBlocksAnalog.begin(); pbi != gPinBlocksAnalog.end(); pbi++) {
             for (int anPin = pbi->basePin; anPin < pbi->basePin + pbi->numPins; anPin++) {
                 // check for patently illegal pin - on GCM4 there are some in the midst of the analog pin range
-                PinList::checkLegalPin(anPin, "Bad AnalogIn Pin");
+                PinList::checkLegalPin(anPin, "Unusable AnalogIn Pin");
                 // make sure tha analog pin is actually an analog capable pin
-                PinList::checkLegalAnalogPin(anPin, "Not AnalogIn");
-                pinMode(anPin, INPUT);
-                AM_DBG(F("Pin"), anPin, F("AnInput"));
+                PinList::checkLegalAnalogPin(anPin, "Pin Not AnalogIn");
+                if (doConfig) {
+                    pinMode(anPin, INPUT);
+                    AM_DBG(F("Pin"), anPin, F("AnInput"));
+                }
             }
         }
     }
@@ -147,7 +154,8 @@ class InputScanner {
         }
     }
 
-    // simulated 8x8 diode matrix - *** must separately config the scan pins as output
+    // simulated 8x8 diode matrix that only reads the pin. Select base = 22, read base = 30
+    // *** to use, must separately config the pins - currently no code for that
     static void test_diodeMatrix_8x8(byte *buf) {
         for (int colPin = 22; colPin < 30; colPin++) {
             fastwrite(colPin, LOW);
@@ -158,7 +166,6 @@ class InputScanner {
             fastwrite(colPin, HIGH);
         }
     }
-
 
     // check for select/read and digital/analog conflicts
     //    no select pin range may intersect any read pin range
