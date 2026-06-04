@@ -1,7 +1,11 @@
 #pragma once
 #include <Arduino.h>
 #include "glob_gen.h"
+#include <variant.h>
 #include <MIDI.h>
+#include "ArrayList.h"
+
+#include "serial_gcm4.h"
 
 /*
     Configure global features for the MIDI scanner / merger / decoder
@@ -25,10 +29,12 @@ typedef struct runtimeConfig {
     bool useLcd;                      // whether to write to LCD display.  OK even if LCD is not attached but with ~1% performance loss.
     bool logScanSequence;             // true disables regular scanning and logs the whole sequence to console every 10 sec
     bool useEthernet;                 // true if we run Ethernet AppleMIDI session connect listener
+    bool useEthernetOutput;           // true if MIDI is to be sent outbound on Ethernet
     bool useUSB;                      // true if USB-MIDI transport is enabled
     bool useSerialScanOutput;         // true for serial MIDI output from scan
     bool showFreeMem;                 // true to display free memory on console and LCD lower left corner.  Slight cost in scan rate.
     char ethernetMac[6];              // Ethernet Mac Address
+    uint8_t numSerialMergeChans;      // Number of serial MIDI merge channels, 0 to disable
     int matrixStabilizationUsec;      // stabilization delay in microseconds following select line writes.  Must be at least 7-10 usec.
 
 } runtimeConfig_t;
@@ -41,11 +47,13 @@ PROGMEM = {
     true,                                     // Production build
     true,                                     // use LCD
     false,                                    // scan sequence logging (DISABLES REGULAR SCAN)
-    true,                                     // run Ethernet transport
+    true,                                     // run Ethernet connections
+    true,                                     // send MIDI on Ethernet transport.  Requires useEthernet.
     false,                                    // run USB transport
     false,                                    // run serial transport output from hw input scanning
     false,                                    // show free memory on console and LCD
     { 0xDE, 0xAD, 0xBE, 0xEF, 0xF0, 0x0D },   // Ethernet MAC address
+    0,                                        // Number of serial MIDI merge input channels
     10                                        // Stabilization delay, microseconds
   }
 #endif
@@ -58,9 +66,13 @@ PROGMEM = {
 
 // *** working on allowing serial output without reading any input ports
 // all combinations of SERIAL_MIDI_INPUT and SERIAL_MIDI_OUTPUT are valid
+//
 
 #define SERIAL_MIDI_INPUT false
 #define SERIAL_MIDI_OUTPUT false
+
+// Create the serial MIDI output channel and take its address for later use
+
 
 // Configure serial input port count and merging
 // if we have active MIDI serial input ports, assume for now that we are merging them all
@@ -96,24 +108,6 @@ PROGMEM = {
 #define NUM_SERIAL_PORTS MIDI_SERIAL_OUTPUT_PORTS
 #endif
 
-EXTERN HardwareSerial *serialPorts[]
-#ifdef GEN_GLOBALS
-= {
-#if NUM_SERIAL_PORTS == 1
-      &Serial3
-#elif NUM_SERIAL_PORTS == 2
-      &Serial3
-    , &Serial2
-#elif NUM_SERIAL_PORTS == 3
-      &Serial3
-    , &Serial2
-    , &Serial1
-#else
-#error NUM_SERIAL_PORTS has unsupported value!
-#endif // MIDI_MERGE_SERIAL_PORTS
-}
-#endif // GEN_GLOBALS
-;
 
 #endif // SERIAL_MIDI_INPUT || SERIAL_MIDI_OUTPUT
 
