@@ -1,5 +1,6 @@
 #pragma once
 
+#include "glob_gen.h"
 #include "deque.h"
 #include <LiquidCrystal_I2C.h>
 
@@ -62,3 +63,9 @@ class LcdDisplay {
         Deque<LcdMsg_t> *pMsgBuf;
 
 };
+
+EXTERN LcdDisplay * gLcd
+#ifdef GEN_GLOBALS
+    = NULL
+#endif
+;
