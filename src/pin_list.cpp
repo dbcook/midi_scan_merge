@@ -5,6 +5,8 @@
 
 #include "config_features.h"
 #include "pin_list.h"
+#include "spindie.h"
+
 
 int calcPinBlockSize(int pbIndx) {
     const PinBlockMulti_t *pb = &(gPinBlocksDigital[pbIndx]);
