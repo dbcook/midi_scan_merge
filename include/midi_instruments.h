@@ -27,3 +27,7 @@
 #define KEYBOARD61_MAX_NOTES 61
 #define KEYBOARD73_MAX_NOTES 73
 #define KEYBOARD88_MAX_NOTES 88
+
+// For piston arrays where note num is just a control index
+#define PISTONS_LOW_CTRLNUM   0
+#define PISTONS_MAX_CTRLS   128
