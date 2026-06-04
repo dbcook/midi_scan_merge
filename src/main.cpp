@@ -39,6 +39,7 @@ powerful processors.
 
 #define GEN_GLOBALS
 #include "glob_gen.h"
+#include "lcd_display.h"
 #include "debug.h"
 #include "stringify.h"
 #include "config_features.h"
@@ -47,9 +48,8 @@ powerful processors.
 #include "data.h"
 #include "midi_const.h"
 #include "debouncer.h"
-#include "pin_list.h"
 #include "scanner.h"
-#include "lcd_display.h"
+#include "analog_lpf.h"
 
 // MIDI channel remapping callbacks
 // We wouldn't need a separate handler per serial interface if we could introspect 
@@ -252,8 +252,10 @@ void startMidi()
 
 void configurePins() {
     pinMode(LED_BUILTIN, OUTPUT);
+    // TODO check for illegal pins here
     InputScanner::checkPinFunctionConflicts();
-    // configuring checks for patently illegal pin assignments
+    
+    // configuring methods currently check for patently illegal pin assignments - factor that out and do above
     InputScanner::configureDigitaPins();
     InputScanner::configureAnalogPins();
 }
@@ -304,6 +306,24 @@ void showStartupBannerOnLcd() {
     // Lline 4: runtime status, not written here
 }
 
+void initAnalogPinsAndFilters() {
+    for (auto pbi = gPinBlocksAnalog.begin(); pbi != gPinBlocksAnalog.end(); pbi++) {
+        midi::DataByte ccnum = pbi->baseCCNum;
+        for (int anPin = pbi->basePin; anPin < pbi->basePin + pbi->numPins; anPin++, ccnum++) {
+            // check for patently illegal pin - on GCM4 there are some in the midst of the analog pin range
+            // move pin legality checks to pin_list.h / .cpp
+            PinList::checkLegalPin(anPin, "Bad AnalogIn Pin");
+            // make sure tha analog pin is actually an analog capable pin
+            PinList::checkLegalAnalogPin(anPin, "Not AnalogIn");
+            pinMode(anPin, INPUT);
+            AM_DBG(F("Pin"), anPin, F("AnInput"));
+
+            // init the filter for this pin
+            AnalogLPF::addAnalogLPF(anPin, ccnum, pbi->midiOutChan, pbi->lowEndband, pbi->highEndBand, pbi->deadband, pbi->filterAlpha);
+        }
+    }
+}
+
 void setup() 
 {
 
@@ -320,12 +340,16 @@ void setup()
     AM_DBG(gProdCopyright);
     AM_DBG(gProdLicense);
 
+    // need to start LCD before any spindie can happen
     if (gConfig.useLcd) {
         initLCD();
     }
 
+    // read digital and analog pin group definitions from flash or SD card config file
     initMemPinBlocks();
+
     configurePins();
+    initAnalogPinsAndFilters();
     
     initDebouncers();
     
@@ -396,10 +420,12 @@ void loop()
         // Divide down scan frequency to one per 10sec to allow for extensive console output
         if (millis() % 10000 == 0) {
             InputScanner::scanDigitalPinBlocks();
+            AnalogLPF::filterAllAnalogInputs();
         }
     }
     else {
         InputScanner::scanDigitalPinBlocks();
+        AnalogLPF::filterAllAnalogInputs();
     }
 }
 

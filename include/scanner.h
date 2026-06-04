@@ -1,13 +1,13 @@
 #pragma once
 
 #include <Arduino.h>
-#include <variant.h>
 #include "glob_gen.h"
 #include "fastread.h"
 #include "data.h"
 #include "spindie.h"
 
-// Minimal-RAM scan block processor based on flash PinBlock defs and separately allocated debouncers.
+// Minimal-RAM digital pin scan block processor based on flash PinBlock defs and separately allocated debouncers.
+// This class also incorporates digital/analog conflict detection
 //
 // We assume here that pin numbers cannot exceed 255.  The largest module seen so far has 70.
 // It would be nice to have a base class with the core pinBlock based scan logic and a virtual
@@ -27,7 +27,7 @@ class InputScanner {
                 if (pbi->useSelect) {
                     int selBase = pbi->pbPinInfo[contactIndx].selectBasePin;
                     for (auto j = selBase; j < selBase + numSelPins; j++) {
-                        checkLegalPin(j, "Bad Sel Pin");
+                        PinList::checkLegalPin(j, "Bad Sel Pin");
                         // scan pins get configured as output
                         pinMode(j, OUTPUT);
                         fastwrite(j, pbi->activeLow ? HIGH : LOW);
@@ -35,7 +35,7 @@ class InputScanner {
                     }
                 }
                 for (auto j = readBase; j < readBase + numReadPIns; j++ ) {
-                    checkLegalPin(j, "Bad Read Pin");
+                    PinList::checkLegalPin(j, "Bad Read Pin");
                     // read pins get configured as INPUT_PULLUP
                     pinMode(j, pbi->activeLow ? INPUT_PULLUP : INPUT);
                     AM_DBG(F("Pin"), j, F("Pullup"));
@@ -51,9 +51,10 @@ class InputScanner {
     static void configureAnalogPins() {
         for (auto pbi = gPinBlocksAnalog.begin(); pbi != gPinBlocksAnalog.end(); pbi++) {
             for (int anPin = pbi->basePin; anPin < pbi->basePin + pbi->numPins; anPin++) {
-                checkLegalPin(anPin, "Bad AnalogIn Pin");
+                // check for patently illegal pin - on GCM4 there are some in the midst of the analog pin range
+                PinList::checkLegalPin(anPin, "Bad AnalogIn Pin");
                 // make sure tha analog pin is actually an analog capable pin
-                checkLegalAnalogPin(anPin, "Not AnalogIn");
+                PinList::checkLegalAnalogPin(anPin, "Not AnalogIn");
                 pinMode(anPin, INPUT);
                 AM_DBG(F("Pin"), anPin, F("AnInput"));
             }
@@ -137,48 +138,6 @@ class InputScanner {
 
     }
 
-    static void scanAnalogPinBlocks() {
-        for (auto pbi = gPinBlocksAnalog.begin(); pbi != gPinBlocksAnalog.end(); pbi++) {
-            uint8_t ccNum = pbi->baseCCNum;
-            for (int anPin = pbi->basePin; anPin < pbi->basePin + pbi->numPins; anPin++, ccNum++) {
-                // *** where do we stash the running value?
-
-                // read and convert to float fraction of full range
-                // we've got an FPU in the Grand Central and we're gonna use it
-                float val = (float)analogRead(anPin) / 65536.0;
-
-                // scaled range is distance between the end guardbands
-                // guards are specified as %up from bottom and % down from top
-                //  Lower guard specifies the zero point - values below this are clipped to 0
-                //  Upper guard is the full range point - values above are clipped to 1.0
-                //  Value is translated to fraction of distance between lower and upper guard points
-
-                // normalize guard points to [0, 1.0]
-                float lowGuard = pbi->lowEndband / 100.0;
-                float hiGuard = pbi->highEndBand / 100.0;
-
-                // scale input value to the interval between the guard points and clamp to [0,1.0]
-                float scaledVal = 0;
-                if (val > hiGuard) {
-                    scaledVal = 1.0;
-                }
-                else if (val >= lowGuard) {
-                    scaledVal = (val - lowGuard) / (hiGuard - lowGuard);  // scale to interval
-                }
-
-                // apply simple exponential LPF to scaledVal to get filteredVal
-                //float filteredVal = pbi->filterAlpha * scaledVal + (1 - pbi->filterAlpha) * previous_filteredVal;
-
-                // deadband filter needed to prevent excessive messages
-                // see if filteredVal has moved away from previously transmitted filteredVal by more than the deadband
-                // if so, transmit MIDI CC message and record filteredVal as the new deadband center
-
-                AM_DBG(F("AnPin"), anPin, F("Val"), val);
-            }
-        }
-
-    }
-
     // scans a lot of pins with fastread but takes no action - reads are safe even if pin is configured as output
     // thus requires no setup, but you ought not hit the forbidden pins 62-66 on the Grand Central
     // nor the SPI on 50-52 if Ethernet is active.  So we stop at 49.
@@ -200,48 +159,6 @@ class InputScanner {
         }
     }
 
-    // check for illegal pin based on runtime config
-    // spindies on fail - game over because the config will not run successfully
-    static void checkLegalPin(int pin, const char * msg) {
-        // always-illegal pins: 0-1 Serial / USB port
-        if ((pin == 0) || (pin == 1)) _SpinDie(msg, pin);
-
-        // SD card chip select:  pin 4 for SD on eth card (Due), out of band CS on Grand Central so not illegal there
-#ifdef ARDUINO_SAM_DUE
-        if (pin == 4) _SpinDie(msg, pin);
-#endif
-        // Ethernet chip select pin 10
-        if (gConfig.useEthernet && (pin ==10)) _SpinDie(msg, pin);
-
-        // LED pin 13
-        // On the Grand Central it is OK to configure pin 13 as input; it has buffering and can do other functions e.g. SER5
-        // On the Due it is technically possible but requires special config of the onboard PIOB and also special code to read;
-        // if you try to do it the normal way the LED becomes a weak pulldown on the input.  So we ban it since I think
-        // we will ultimately drop Due support.
-#ifdef ARDUINO_SAM_DUE
-        if (pin == 13) _SpinDie(msg, pin);
-#endif
-
-        // LCD I2C pins 20-21
-        if (gConfig.useLcd && ((pin == 20) || (pin == 21))) _SpinDie(msg, pin);
-
-        // Ethernet SPI (ICSP headers) pins 50-52
-        if (gConfig.useEthernet && pin >= 50 && pin <= 52) _SpinDie(msg, pin);
-    }
-
-    // Make sure the specified pin is analog-capable on the target and spindie if not
-    static void checkLegalAnalogPin(int pin, const char * msg) {
-    #ifdef ARDUINO_SAM_DUE
-        if (pin < A0 || pin > A11) _SpinDie(msg, pin);
-    #elif defined(ARDUINO_GRAND_CENTRAL_M4)
-        // Analog to digital pin numbering is screwy on the M4: there are two disjoint blocks with a dangerous gap.
-        // A0-A7 are digital 67-74.  A8-A15 are digital 54-61.  Trying to reference digital 62-66 causes a hard crash.
-        if (pin < 54 || pin > 74 || (pin >= 62 && pin <=66)) _SpinDie(msg, pin);
-    #else
-    #error Unsupported processor type!
-    #endif
-
-    }
 
     // check for select/read and digital/analog conflicts
     //    no select pin range may intersect any read pin range
