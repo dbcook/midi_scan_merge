@@ -77,15 +77,15 @@ EXTERN const char * gProdLicense
 // the operation of the macros prevents turning the midi0, midi1, etc. into an indexed array as they must be literals rather than strings
 // This can be done in an init routine though
 #if MIDI_MERGE_SERIAL_PORTS > 0
-MIDI_CREATE_INSTANCE(HardwareSerial, *serialPorts[0], midi0);
+MIDI_CREATE_INSTANCE(HardwareSerial, *uartPorts[0], midi0);
 #endif
 
 #if MIDI_MERGE_SERIAL_PORTS > 1
-MIDI_CREATE_INSTANCE(HardwareSerial, *serialPorts[1], midi1);
+MIDI_CREATE_INSTANCE(HardwareSerial, *uartPorts[1], midi1);
 #endif
 
 #if MIDI_MERGE_SERIAL_PORTS > 2
-MIDI_CREATE_INSTANCE(HardwareSerial, *serialPorts[2], midi2);
+MIDI_CREATE_INSTANCE(HardwareSerial, *uartPorts[2], midi2);
 #endif
 
 #endif
@@ -98,9 +98,6 @@ EXTERN t_midiInterfaceHWSerialPtr gMidiSerialOutputInterface
 #endif
 ;
 #endif
-
-EXTERN LcdDisplay * gLcd;
-
 
 EXTERN t_midiInterfaceEthPtr gMidiEthOutputInterface
 #ifdef GEN_GLOBALS
