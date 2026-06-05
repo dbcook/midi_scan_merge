@@ -100,11 +100,8 @@ class UartToMidiInterfaceMap {
                 SerMidiMapEntry() {
                     function = unassigned;
                 }
-                SerMidiMapEntry(PLATFORM_SERCLASS * pUart, pMidiInterface_t pMidiInterface, eAllocatedFunction funct = unassigned) {
-                    this->pUart = pUart;
-                    this->pMidiInterface = pMidiInterface;
-                    this->function = funct;
-                }
+                SerMidiMapEntry(PLATFORM_SERCLASS * pUart, pMidiInterface_t pMidiInterface, eAllocatedFunction funct = unassigned) 
+                    : pUart(pUart), pMidiInterface(pMidiInterface), function(funct) { }
         };
 
         ArrayList<SerMidiMapEntry> midiMapList;
