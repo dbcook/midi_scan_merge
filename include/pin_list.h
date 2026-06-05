@@ -88,7 +88,10 @@ class PinList {
     // check for patently illegal pin based on runtime config
     // spindies on fail - game over because the config will not run successfully
     static void checkLegalPin(int pin, const char * msg) {
+
         // always-illegal pins: 0-1 Serial / USB port
+        // it's theoretically possible to use these pins if the bootloader doesn't use them, and we emit no
+        // console msgs or send them out a dedicated USB serial port.
         if ((pin == 0) || (pin == 1)) _SpinDie(msg, pin);
 
         // SD card chip select:  pin 4 for SD on eth card (Due), out of band CS on Grand Central so not illegal there
