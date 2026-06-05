@@ -69,23 +69,6 @@ EXTERN const char * gProdLicense
 #else
 #endif
 
-#ifdef GEN_GLOBALS
-// Set up the MIDI library - compile time macros
-// the operation of the macros prevents turning the midi0, midi1, etc. into an indexed array as they must be literals rather than strings
-// This can be done in an init routine though
-#if MIDI_MERGE_SERIAL_PORTS > 0
-MIDI_CREATE_INSTANCE(HardwareSerial, *uartPorts[0], midi0);
-#endif
-
-#if MIDI_MERGE_SERIAL_PORTS > 1
-MIDI_CREATE_INSTANCE(HardwareSerial, *uartPorts[1], midi1);
-#endif
-
-#if MIDI_MERGE_SERIAL_PORTS > 2
-MIDI_CREATE_INSTANCE(HardwareSerial, *uartPorts[2], midi2);
-#endif
-
-#endif
 
 #if MIDI_SERIAL_OUTPUT
 // ALL MIDI serial output messages go to the first defined serial port
