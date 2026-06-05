@@ -17,12 +17,13 @@
 // PINS YOU MUST AVOID
 // You CANNOT use any of the following pins in any scan range (subject to some conditions):
 //    D0-D1 - hardware serial port reserved for bootloader serial, debugger stub, and console debug messages
-//    D4  - Ethernet Shield 2 when SD card is used: chip select for SD card
+//    D4  - SD card chip select on Ethernet Shield 2 (would be used for Due)
 //    D10 - Ethernet Shield 2 whenever present: chip select for WizNet 5500 chip
 //    D13 - LED output on most Arduino implementations
 //    D14-D15 - Unavailable if you have a MIDI serial shield or debug monitor connected to SER3
 //    D20-21 - Unavailable if the LCD I2C display is in use (these shadow the SDA and SCL lines)
 //    D50-52 - Unavailable if the Ethernet shield is in use (MISO MOSI SCK for the primary SPI bus)
+//    D53 - SD Card chip select on Grand Central.  The Ethernet Shield SD card cannot be used on the GC.
 //    D62-66 - These don't exist on the Grand Central and trying to reference them crashes
 //
 // For simplicity, unless you are trying to use all the possible pins I would just avoid using anything

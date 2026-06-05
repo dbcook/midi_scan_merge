@@ -94,7 +94,7 @@ class PinList {
         // console msgs or send them out a dedicated USB serial port.
         if ((pin == 0) || (pin == 1)) _SpinDie(msg, pin);
 
-        // SD card chip select:  pin 4 for SD on eth card (Due), out of band CS on Grand Central so not illegal there
+        // SD card chip select on Ethernet Shield 2:  pin 4
 #ifdef ARDUINO_SAM_DUE
         if (pin == 4) _SpinDie(msg, pin);
 #endif
@@ -115,6 +115,11 @@ class PinList {
 
         // Ethernet SPI (ICSP headers) pins 50-52
         if (gConfig.useEthernet && pin >= 50 && pin <= 52) _SpinDie(msg, pin);
+
+        // SD card chip select for Grand Central
+#if defined( ADAFRUIT_GRAND_CENTRAL_M4 )
+        if (pin == 53) _SpinDie(msg, pin);
+#endif
     }
 
     // Make sure the specified pin is analog-capable on the target and spindie if not
