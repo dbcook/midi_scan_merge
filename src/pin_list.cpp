@@ -48,7 +48,7 @@ int calcNumAnalogInputs() {
 
 
 // traverse the pinBlocks and init their debouncers accordingly
-// *** need to enforce constraint during pinBlock readin that (baseNoteNum + numCtrls - 1) <= MAX_MIDI_NOTE_NUMBER (128)
+// and make sure we don't go off the end of the debouncers allocation
 void initDebouncers() {
     // need to reset them all
     for (int i = 0; i < MAX_DEBOUNCERS; i++) {
@@ -60,6 +60,7 @@ void initDebouncers() {
     for (size_t i = 0; i < gPinBlocksDigital.size(); i++) {
         int dbase = gDebouncerBases[i];
         const PinBlockMulti_t *pb = &(gPinBlocksDigital[i]);
+        if ( (dbase + pb->numCtrls) > MAX_DEBOUNCERS) _SpinDie(F("Too many debouncers"), dbase + pb->numCtrls);
         for (int j = 0; j < pb->numCtrls; j++) {
             gDebouncers[dbase + j].setNoteAndChan(pb->baseMidiNoteNum + j, pb->midiOutChan);
             gDebouncers[dbase + j].setDebounceTimes(pb->attackDebounceMsec, pb->releaseDebounceMsec);
