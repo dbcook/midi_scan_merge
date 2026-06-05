@@ -21,9 +21,6 @@
 #include "pin_list.h"
 #include "debouncer.h"
 
-// infinite spin when irrecoverable condition occurs
-#define DIE for (;;)
-
 EXTERN const char * gProdName
 #ifdef GEN_GLOBALS
 = "MIDI Processor"
