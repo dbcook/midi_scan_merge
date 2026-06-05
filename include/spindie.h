@@ -5,11 +5,27 @@
 inline void _SpinDie( const char * msg, int val = 0) {
     AM_DBG(F("CRASH"), msg, val);
     if (gConfig.useLcd) {
-        char buf[80];
-        snprintf(buf, sizeof(buf)-1, "%s %d", msg, val);
+        char buf[14];
+        snprintf_P(buf, sizeof(buf)-1, PSTR(" %d"), val);
         gLcd->pLCD->clear();
-        gLcd->lcdMessage("CRASHED");
+        gLcd->lcdMessage(F("CRASHED"));
         gLcd->pLCD->setCursor(0, 1);
+        gLcd->lcdMessage(msg);
+        gLcd->lcdMessage(buf);
+    }
+    while(1);   // the end
+}
+
+// note - snprintf_P format string doesn't interpret %S as documented, it's looking for wchar_t *
+inline void _SpinDie( const __FlashStringHelper * msg, int val = 0) {
+    AM_DBG(F("CRASH"), msg, val);
+    if (gConfig.useLcd) {
+        char buf[14];
+        snprintf_P(buf, sizeof(buf)-1, PSTR(" %d"), val);
+        gLcd->pLCD->clear();
+        gLcd->lcdMessage(F("CRASHED"));
+        gLcd->pLCD->setCursor(0, 1);
+        gLcd->lcdMessage(msg);
         gLcd->lcdMessage(buf);
     }
     while(1);   // the end
