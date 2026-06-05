@@ -41,6 +41,16 @@ class LcdDisplay {
 
         }
 
+        void lcdMessage( const __FlashStringHelper * txt, bool foreground = true) {
+            if (foreground) {
+                pLCD->print(txt);
+            }
+            else {
+                // queue it up - need to have queue entry know if it is positioned or at-cursor
+            }
+
+        }
+
         // a few wrappers for common manipulations from underlying lib
         void init(bool backlight = true) {
             pLCD->init();
