@@ -36,6 +36,7 @@ powerful processors.
 
 #include <MIDI.h>
 #include <AppleMIDI.h>
+#include <SdFat.h>
 
 #define GEN_GLOBALS
 #include "glob_gen.h"
@@ -337,7 +338,7 @@ void setup()
     // Wait for serial port to connect (needed for USB monitor, happens right away for regular serial)
     Console->begin(consoleBaudRate);
     while( !Console ) {
-        ;
+        yield();
     }
     // delay for Grand Central so we can startup serial monitor on the bootloader port
     //delay(10*1000);
