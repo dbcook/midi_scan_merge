@@ -25,6 +25,10 @@
 //---------------------------------------
 
 typedef struct runtimeConfig {
+    // these items represent processor-independent startup defaults
+    bool readConfigFromSdCard;        // true means overwrite this struct by reading the config file
+
+    // items expected to be overwritten by the config file
     bool isProductionBuild;           // can be used to generally disable non-production features
     bool useLcd;                      // whether to write to LCD display.  OK even if LCD is not attached but with ~1% performance loss.
     bool logScanSequence;             // true disables regular scanning and logs the whole sequence to console every 10 sec
@@ -44,6 +48,7 @@ typedef struct runtimeConfig {
 EXTERN runtimeConfig_t gConfig
 #ifdef GEN_GLOBALS
 PROGMEM = {
+    true,                                     // read config from file on SD card
     true,                                     // Production build
     true,                                     // use LCD
     false,                                    // scan sequence logging (DISABLES REGULAR SCAN)

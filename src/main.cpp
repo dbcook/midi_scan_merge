@@ -51,6 +51,7 @@ powerful processors.
 #include "debouncer.h"
 #include "scanner.h"
 #include "analog_lpf.h"
+#include "sd_card.h"
 
 // MIDI channel remapping callbacks
 // We wouldn't need a separate handler per serial interface if we could introspect 
@@ -304,11 +305,11 @@ void showStartupBannerOnLcd() {
     gLcd->lcdMessage("Dig ", 0, 2);
     gLcd->lcdMessage(String(gPinBlocksDigital.size()).c_str());
     gLcd->lcdMessage(" ");
-    gLcd->lcdMessage(String(calcNumDigitalInputs()).c_str());
+    gLcd->lcdMessage(String(PinList::calcNumDigitalInputs()).c_str());
     gLcd->lcdMessage(" An ");
     gLcd->lcdMessage(String(gPinBlocksAnalog.size()).c_str());
     gLcd->lcdMessage(" ");
-    gLcd->lcdMessage(String(calcNumAnalogInputs()).c_str());
+    gLcd->lcdMessage(String(PinList::calcNumAnalogInputs()).c_str());
 
     // Lline 4: runtime status, not written here
 }
@@ -353,8 +354,14 @@ void setup()
         initLCD();
     }
 
+    // Start up SD card - needed to read config
+    // above this any references to gConfig are using the startup defaults
+    if (gConfig.readConfigFromSdCard) {
+        SdCardMgr::initForReadOnly();
+    }
+
     // read digital and analog pin group definitions from flash or SD card config file
-    initMemPinBlocks();
+    PinList::initMemPinBlocks();
 
     configurePins();
     initAnalogPinsAndFilters();
