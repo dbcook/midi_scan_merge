@@ -1,5 +1,3 @@
-#include <Arduino.h>
-#include <LiquidCrystal_I2C.h>
 #include "data.h"
 #include "spindie.h"
 
