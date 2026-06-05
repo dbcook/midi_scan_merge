@@ -6,10 +6,11 @@
 // being seen (i.e. an LCD update), while leaving any background IO active.
 //
 // Die by spitting out the message on console and/or LCD and then dropping
-// into a hard loop calling yield().  That allows certain background things to
-// continue (hardware specific).  On AVR type systems the default yield is a
+// into a hard loop calling delay().  That in turn runs yield() which allows
+// certain library-implemented background things to continue (hardware and
+// library specific).  On AVR type systems the default yield is a
 // weak system function that does nothing but can be overridden as desired.
-// On ESP32 systems with WiFi, the WiFi comms will stop if yield() is not called.
+// On ESP8266 systems with WiFi, the WiFi comms will stop if yield() is not called.
 
 void _SpinDie( const char * msg, int val ) {
     AM_DBG(F("CRASH"), msg, val);
