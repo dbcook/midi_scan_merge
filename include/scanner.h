@@ -178,7 +178,7 @@ class InputScanner {
             // make sure notenum doesn't go out of range even if pin numbers are OK
             int baseNote = pbi->baseMidiNoteNum;
             if ((baseNote + (int)(pbi->numCtrls)) > MIDI_MAX_NOTES)
-                _SpinDie("NoteNum too big", baseNote + pbi->numCtrls - 1);
+                _SpinDie(F("NoteNum too big"), baseNote + pbi->numCtrls - 1);
 
             for (auto contactIndx = 0; contactIndx < pbi->numContacts; contactIndx++) {
                 int readBase = pbi->pbPinInfo[contactIndx].readBasePin;
@@ -201,7 +201,7 @@ class InputScanner {
                         for (auto pbia = gPinBlocksAnalog.begin(); pbia != gPinBlocksAnalog.end(); pbia++) {
                             int napins = pbia->numPins;
                             for (int apin = 0; apin < napins; apin++) {
-                                if (sPin == apin) _SpinDie("Dig/An Conflict", sPin);
+                                if (sPin == apin) _SpinDie(F("Dig/An Conflict"), sPin);
                             }
                         } // analog pinBlock loop - inner
                     }
@@ -216,7 +216,7 @@ class InputScanner {
                         for (auto pbix = gPinBlocksAnalog.begin(); pbix != gPinBlocksAnalog.end(); pbix++) {
                             int napins = pbix->numPins;
                             for (int apin = pbix->basePin; apin < pbix->basePin + napins; apin++) {
-                                if (pin == apin) _SpinDie("Dig/An Conflict", pin);
+                                if (pin == apin) _SpinDie(F("Dig/An Conflict"), pin);
                             }
                         }
                     }
@@ -231,7 +231,7 @@ class InputScanner {
                             for (auto cti = 0; cti < pbix->numContacts; cti++) {
                                 int rpbase = pbix->pbPinInfo->readBasePin;
                                 for (int n = rpbase; n < rpbase + nrpins; n++) {
-                                    if (pin == n) _SpinDie("ParrRd Conflict", pin);
+                                    if (pin == n) _SpinDie(F("ParrRd Conflict"), pin);
                                 } // read pin loop - inner
                             } // contacts loop - inner
                         } // digital pinBlock loop - inner
@@ -240,15 +240,13 @@ class InputScanner {
                         for (auto pbia = gPinBlocksAnalog.begin(); pbia != gPinBlocksAnalog.end(); pbia++) {
                             int napins = pbia->numPins;
                             for (int apin = pbia->basePin; apin < pbia->basePin + napins; apin++) {
-                                if (pin == apin) _SpinDie("Dig/An Conflict", pin);
+                                if (pin == apin) _SpinDie(F("Dig/An Conflict"), pin);
                             }
                         } // analog pinBlock loop - inner
 
                     } // read pin loop - outer
                 }
-
                 // check for digital / analog collisions
-
             } // contacts loop - outer
         } // pinBlock loop - outer
     }
