@@ -341,6 +341,7 @@ void setup()
         yield();
     }
     // delay for Grand Central so we can startup serial monitor on the bootloader port
+    // it takes a little while for the bootloader to let go of the USB port
     //delay(10*1000);
 #endif
     AM_DBG(gProdName, gProdVersion);
