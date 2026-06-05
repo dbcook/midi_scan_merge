@@ -20,7 +20,7 @@ inline void _SpinDie( const char * msg, int val = 0) {
 inline void _SpinDie( const __FlashStringHelper * msg, int val = 0) {
     AM_DBG(F("CRASH"), msg, val);
     if (gConfig.useLcd) {
-        char buf[14];
+        char buf[1];
         snprintf_P(buf, sizeof(buf)-1, PSTR(" %d"), val);
         gLcd->pLCD->clear();
         gLcd->lcdMessage(F("CRASHED"));
@@ -29,4 +29,24 @@ inline void _SpinDie( const __FlashStringHelper * msg, int val = 0) {
         gLcd->lcdMessage(buf);
     }
     while(1);   // the end
+}
+
+inline void _SpinDie( const __FlashStringHelper * msg ) {
+    AM_DBG(F("CRASH"), msg);
+    if (gConfig.useLcd) {
+        gLcd->pLCD->clear();
+        gLcd->lcdMessage(F("CRASHED"));
+        gLcd->pLCD->setCursor(0, 1);
+        gLcd->lcdMessage(msg);
+    }    
+}
+
+inline void _SpinDie( const char * msg ) {
+    AM_DBG(F("CRASH"), msg);
+    if (gConfig.useLcd) {
+        gLcd->pLCD->clear();
+        gLcd->lcdMessage(F("CRASHED"));
+        gLcd->pLCD->setCursor(0, 1);
+        gLcd->lcdMessage(msg);
+    }    
 }
